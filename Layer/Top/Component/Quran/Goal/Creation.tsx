@@ -204,7 +204,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
           <div className="flex-grow space-y-4" key={`step-${step}`}>
             {step === 1 && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Choose a goal</h2>
                 {GOAL_PRESETS.map((preset) => {
                   const Icon = iconMap[preset.icon] || Clock;
                   const isSelected = selectedPreset?.id === preset.id;
@@ -255,7 +254,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
 
             {step === 2 && !isCustom && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Frequency</h2>
                 {[
                   { id: "daily" as const, icon: Repeat, title: "Daily", desc: "Resets every day" },
                   { id: "duration" as const, icon: Calendar, title: "Duration", desc: "Track over set days" },
@@ -296,7 +294,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
 
             {step === 2 && isCustom && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Configure</h2>
                 <div className="space-y-2">
                   <Label className="text-xs ml-1">Goal type</Label>
                   <Select value={customGoalType} onValueChange={(v) => setCustomGoalType(v as any)}>
@@ -372,7 +369,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
 
             {step === 3 && (
               <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Schedule</h2>
                 <div className="space-y-2">
                   {generateSchedule().map((item, index) => (
                     <Container key={index} className="!py-3 !px-4 flex items-center justify-between">
