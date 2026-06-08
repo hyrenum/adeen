@@ -89,7 +89,7 @@ export function Active({
   if (!activeGoal) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 -mt-12 md:-mt-16 -mx-2 sm:-mx-4">
       {/* Hero ring + Current Position + stats */}
       <Container className="!p-5 sm:!p-7">
         <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
