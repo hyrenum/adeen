@@ -154,16 +154,20 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
     step === 2 ||
     step === 3;
 
+  const stepTitle =
+    step === 1 ? "Choose a Goal" : step === 2 ? (isCustom ? "Configure" : "Frequency") : "Schedule";
+
   return (
     <div className="container max-w-md mx-auto p-0 sm:py-12 sm:px-4 select-none">
       <Container className="flex flex-col items-center min-h-[580px] !p-0 sm:!p-8">
         <div className="w-full px-6 flex-grow flex flex-col pt-2">
-          {/* Title in thin Container */}
+          {/* Step title in thin Container */}
           <div className="flex justify-center mt-2 mb-4">
             <Container className="!py-1 !px-4 inline-flex w-auto">
-              <span className="text-sm font-medium">New Goal</span>
+              <span className="text-sm font-medium">{stepTitle}</span>
             </Container>
           </div>
+
 
           {/* Step Indicator (Zakat-style) */}
           <div className="flex items-center justify-center mb-8 mt-2">
