@@ -158,15 +158,15 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
     step === 1 ? "Choose a Goal" : step === 2 ? (isCustom ? "Configure" : "Frequency") : "Schedule";
 
   return (
-    <div className="container max-w-md mx-auto p-0 sm:py-12 sm:px-4 select-none">
-      <Container className="flex flex-col items-center min-h-[580px] !p-0 sm:!p-8">
-        <div className="w-full px-6 flex-grow flex flex-col pt-2">
-          {/* Step title in thin Container */}
+    <div className="container max-w-md mx-auto select-none">
+      <div className="flex flex-col items-center min-h-[580px]">
+        <div className="w-full flex-grow flex flex-col pt-2">
+          {/* Step title */}
           <div className="flex justify-center mt-2 mb-4">
-            <Container className="!py-1 !px-4 inline-flex w-auto">
-              <span className="text-sm font-medium">{stepTitle}</span>
-            </Container>
+            <span className="text-sm font-medium">{stepTitle}</span>
           </div>
+
+
 
 
           {/* Step Indicator (Zakat-style) */}
@@ -418,7 +418,7 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
             )}
           </div>
         </div>
-      </Container>
+      </div>
     </div>
   );
 }
