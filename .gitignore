@@ -1,0 +1,24 @@
+# Virtual environments
+asr_env/
+whisper_env/
+stt_env/
+*.pyc
+__pycache__/
+
+# Node modules
+node_modules/
+
+# Large model files
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Audio/video
+*.mp3
+*.wav
+*.webm
+
+# OS junk
+.DS_Store
+Thumbs.db

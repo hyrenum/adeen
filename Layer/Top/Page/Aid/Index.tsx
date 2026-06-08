@@ -1,0 +1,41 @@
+import { Layout } from "@/Top/Component/Layout/Index";
+import { Card } from "@/Top/Component/UI/Card";
+import { useTranslation } from "@/Middle/Hook/Use-Translation";
+import { Link } from "react-router-dom";
+
+const Aid = () => {
+  const { isRtl } = useTranslation();
+
+  const items = [
+    { to: "/Aid/Prayers", label: "Prayer Time" },
+    { to: "/Aid/Qibla", label: "Qibla Direction" },
+    { to: "/Aid/Hijri-Calendar", label: "Hijri Calendar" },
+    { to: "/Aid/Zakat-Calculator", label: "Zakat Calculator" },
+    { to: "/Aid/Tasbih", label: "Tasbih Counter" },
+    { to: "/Aid/Dua", label: "Dua" },
+    { to: "/Aid/Arabic", label: "Arabic" },
+    { to: "/Aid/AI", label: "AI Assistant" },
+
+  ];
+
+  return (
+    <Layout>
+      <div
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 w-full"
+        dir={isRtl ? "rtl" : "ltr"}
+      >
+        {items.map((item) => (
+          <Link key={item.to} to={item.to}>
+            <Card className="p-4 text-center group">
+              <span className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                {item.label}
+              </span>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </Layout>
+  );
+};
+
+export default Aid;
