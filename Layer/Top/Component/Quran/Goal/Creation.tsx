@@ -154,16 +154,20 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
     step === 2 ||
     step === 3;
 
+  const stepTitle =
+    step === 1 ? "Choose a Goal" : step === 2 ? (isCustom ? "Configure" : "Frequency") : "Schedule";
+
   return (
     <div className="container max-w-md mx-auto p-0 sm:py-12 sm:px-4 select-none">
       <Container className="flex flex-col items-center min-h-[580px] !p-0 sm:!p-8">
         <div className="w-full px-6 flex-grow flex flex-col pt-2">
-          {/* Title in thin Container */}
+          {/* Step title in thin Container */}
           <div className="flex justify-center mt-2 mb-4">
             <Container className="!py-1 !px-4 inline-flex w-auto">
-              <span className="text-sm font-medium">New Goal</span>
+              <span className="text-sm font-medium">{stepTitle}</span>
             </Container>
           </div>
+
 
           {/* Step Indicator (Zakat-style) */}
           <div className="flex items-center justify-center mb-8 mt-2">
@@ -200,7 +204,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
           <div className="flex-grow space-y-4" key={`step-${step}`}>
             {step === 1 && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Choose a goal</h2>
                 {GOAL_PRESETS.map((preset) => {
                   const Icon = iconMap[preset.icon] || Clock;
                   const isSelected = selectedPreset?.id === preset.id;
@@ -251,7 +254,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
 
             {step === 2 && !isCustom && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Frequency</h2>
                 {[
                   { id: "daily" as const, icon: Repeat, title: "Daily", desc: "Resets every day" },
                   { id: "duration" as const, icon: Calendar, title: "Duration", desc: "Track over set days" },
@@ -292,7 +294,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
 
             {step === 2 && isCustom && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Configure</h2>
                 <div className="space-y-2">
                   <Label className="text-xs ml-1">Goal type</Label>
                   <Select value={customGoalType} onValueChange={(v) => setCustomGoalType(v as any)}>
@@ -368,7 +369,6 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
 
             {step === 3 && (
               <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                <h2 className="text-lg font-bold text-center mb-2">Schedule</h2>
                 <div className="space-y-2">
                   {generateSchedule().map((item, index) => (
                     <Container key={index} className="!py-3 !px-4 flex items-center justify-between">
@@ -387,9 +387,11 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
               onClick={() => (step > 1 ? setStep((s) => (s - 1) as WizardStep) : onClose())}
               variant="secondary"
               size="icon"
+              className="h-12 w-12 rounded-full shrink-0"
             >
               <ChevronLeft size={20} />
             </Button>
+
 
             {step < totalSteps ? (
               <Button
