@@ -387,9 +387,11 @@ export function Creation({ onCreateGoal, onClose }: Creation_Props) {
               onClick={() => (step > 1 ? setStep((s) => (s - 1) as WizardStep) : onClose())}
               variant="secondary"
               size="icon"
+              className="h-12 w-12 rounded-full shrink-0"
             >
               <ChevronLeft size={20} />
             </Button>
+
 
             {step < totalSteps ? (
               <Button
