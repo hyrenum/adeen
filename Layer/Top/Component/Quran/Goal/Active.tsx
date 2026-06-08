@@ -1,11 +1,9 @@
-import { Flame, Trophy, Clock, Calendar, Target, Trash2, MapPin, Plus } from "lucide-react";
+import { Clock, Target, Trash2, MapPin } from "lucide-react";
 import { cn } from "@/Middle/Library/utils";
 import { Container } from "@/Top/Component/UI/Container";
 import { Button } from "@/Top/Component/UI/Button";
 import { Progress_Ring } from "./Progress";
 import type { Goal_Progress } from "./Types";
-
-const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface Active_Props {
   activeGoal: any;
@@ -26,27 +24,8 @@ interface Active_Props {
   onCreateNewGoal: () => void;
 }
 
-function StatPanel({
-  icon: Icon,
-  value,
-  label,
-}: {
-  icon: any;
-  value: string | number;
-  label: string;
-}) {
-  return (
-    <Container className="!p-3 text-center">
-      <Icon className="h-4 w-4 mx-auto mb-1 text-foreground/80" />
-      <p className="text-xl font-bold tabular-nums leading-none">{value}</p>
-      <p className="text-[10px] mt-1 uppercase tracking-wider text-muted-foreground">{label}</p>
-    </Container>
-  );
-}
-
 export function Active({
   activeGoal,
-  weekProgress,
   totalMinutesRead,
   todayMinutes,
   todaySeconds = 0,
@@ -60,16 +39,13 @@ export function Active({
   currentJuz,
   currentPage,
   onDeleteGoal,
-  onCreateNewGoal,
 }: Active_Props) {
   const today = new Date();
-  const dayOfWeek = today.getDay();
   const endDate = activeGoal?.end_date ? new Date(activeGoal.end_date) : null;
   const daysRemaining = endDate
     ? Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / 86400000))
     : null;
   const dailyTarget = activeGoal?.daily_target || 0;
-  const completedDays = weekProgress?.filter((p) => p.completed).length || 0;
 
   const totalTodaySeconds = todayMinutes * 60 + todaySeconds;
   const targetSeconds = dailyTarget * 60;
@@ -113,35 +89,9 @@ export function Active({
   if (!activeGoal) return null;
 
   return (
-    <div className="container py-6 sm:py-8 max-w-4xl mx-auto px-4 space-y-4">
-      {/* Title in thin Container */}
-      <div className="flex items-center justify-between gap-3">
-        <Container className="!py-1 !px-4 inline-flex w-auto">
-          <span className="text-sm font-medium">Active Goal</span>
-        </Container>
-        <Button
-          onClick={onDeleteGoal}
-          size="icon"
-          variant="ghost"
-          className="w-9 h-9 p-0 text-destructive/80 hover:text-destructive"
-          title="Delete Goal"
-          aria-label="Delete Goal"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Hero ring + stats */}
+    <div className="space-y-4">
+      {/* Hero ring + Current Position + stats */}
       <Container className="!p-5 sm:!p-7">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-            <Target className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-base sm:text-lg font-bold leading-tight">Active Mission</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
-          </div>
-        </div>
         <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
           <Progress_Ring
             value={ringValue}
@@ -152,16 +102,35 @@ export function Active({
             variant="segmented"
             segments={60}
           />
-          <div className="grid grid-cols-2 gap-2.5 flex-1 w-full">
-            <StatPanel icon={Flame} value={activeGoal.current_streak || 0} label="Streak" />
-            <StatPanel icon={Trophy} value={activeGoal.longest_streak || 0} label="Best" />
-            <StatPanel icon={Clock} value={totalMinutesRead} label="Total min" />
-            <StatPanel icon={Calendar} value={`${completedDays}/7`} label="This week" />
+          <div className="flex-1 w-full space-y-3">
+            <p className="text-xs text-muted-foreground text-center sm:text-left">{subtitle}</p>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Current Position</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "Surah", value: currentSurah?.englishName || "Al-Fatihah" },
+                { label: "Ayah", value: currentAyah || 1 },
+                { label: "Juz", value: currentJuz || 1 },
+                { label: "Page", value: currentPage || 1 },
+              ].map((it) => (
+                <Container key={it.label} className="!p-2 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{it.label}</p>
+                  <p className="font-semibold text-xs truncate mt-0.5">{it.value}</p>
+                </Container>
+              ))}
+            </div>
+            <Container className="!p-2 text-center">
+              <Clock className="h-4 w-4 mx-auto mb-1 text-foreground/80" />
+              <p className="text-xl font-bold tabular-nums leading-none">{totalMinutesRead}</p>
+              <p className="text-[10px] mt-1 uppercase tracking-wider text-muted-foreground">Total min</p>
+            </Container>
           </div>
         </div>
       </Container>
 
-      {/* Today (time-based) */}
+      {/* Today (time-based) - bars only, no time-remaining duplication */}
       {activeGoal.goal_type === "time_based" && dailyTarget > 0 && (
         <Container className="!p-4 sm:!p-5">
           <div className="flex items-center justify-between mb-2.5">
@@ -186,9 +155,6 @@ export function Active({
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {isGoalCompleted ? "Goal complete" : `${formatTimeRemaining(remainingSeconds)} remaining`}
-          </p>
         </Container>
       )}
 
@@ -231,30 +197,6 @@ export function Active({
               </p>
             </Container>
           </div>
-        </Container>
-      )}
-
-      {/* Current position */}
-      <Container className="!p-4 sm:!p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Current Position</span>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: "Surah", value: currentSurah?.englishName || "Al-Fatihah" },
-            { label: "Ayah", value: currentAyah || 1 },
-            { label: "Juz", value: currentJuz || 1 },
-            { label: "Page", value: currentPage || 1 },
-          ].map((it) => (
-            <Container key={it.label} className="!p-2 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{it.label}</p>
-              <p className="font-semibold text-xs truncate mt-0.5">{it.value}</p>
-            </Container>
-          ))}
-        </div>
-
-        {activeGoal.goal_type === "khatm" && (
           <div className="mt-4 pt-4 border-t border-border/40">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground">Overall Progress</span>
@@ -275,44 +217,18 @@ export function Active({
               {versesRead.toLocaleString()} / {totalVerses.toLocaleString()} verses
             </p>
           </div>
-        )}
-      </Container>
+        </Container>
+      )}
 
-      {/* Week */}
-      <Container className="!p-4 sm:!p-5">
-        <p className="text-sm font-semibold mb-3">This Week</p>
-        <div className="flex items-center justify-between">
-          {DAYS_OF_WEEK.map((day, index) => {
-            const progressForDay = weekProgress?.find(
-              (p) => new Date(p.date).getDay() === index
-            );
-            const isToday = index === dayOfWeek;
-            const isCompleted = progressForDay?.completed;
-            return (
-              <div key={day} className="flex flex-col items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{day}</span>
-                <div
-                  className={cn(
-                    "w-9 h-9 rounded-full flex items-center justify-center transition-all text-xs font-bold",
-                    isCompleted
-                      ? "bg-foreground text-background"
-                      : isToday
-                      ? "border-2 border-foreground text-foreground"
-                      : "border border-border text-muted-foreground"
-                  )}
-                >
-                  {isCompleted ? "✓" : isToday ? "·" : ""}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Container>
-
-      {/* New goal CTA */}
-      <Button onClick={onCreateNewGoal} variant="secondary" fullWidth className="h-12">
-        <Plus className="h-4 w-4" />
-        New Goal
+      {/* Delete CTA (replaces New Goal button) */}
+      <Button
+        onClick={onDeleteGoal}
+        variant="secondary"
+        fullWidth
+        className="h-12 text-destructive hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+        Delete Goal
       </Button>
     </div>
   );
