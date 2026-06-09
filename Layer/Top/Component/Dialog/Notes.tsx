@@ -230,9 +230,9 @@ export const NotesDialog = memo(function NotesDialog({
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-40 bg-background pt-[72px]">
+      <div className="fixed inset-0 z-40 bg-background pt-12 md:pt-16">
         <div ref={scrollRef} className="h-full overflow-y-auto overscroll-contain">
-          <div className="p-4 space-y-4">
+          <div className="px-2 sm:px-4 pb-6">
             {renderContent()}
           </div>
         </div>
@@ -241,9 +241,9 @@ export const NotesDialog = memo(function NotesDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-background pt-[72px]">
+    <div className="fixed inset-0 z-40 bg-background pt-12 md:pt-16">
       <ScrollArea className="h-full" ref={scrollRef}>
-        <div className="p-6 mx-auto max-w-2xl">
+        <div className="px-2 sm:px-4 pb-6">
           {renderContent()}
         </div>
       </ScrollArea>
