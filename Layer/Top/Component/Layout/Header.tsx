@@ -18,6 +18,7 @@ import { Quran_Navigator } from "@/Top/Component/Quran/Navigator";
 import { Aid_Navigator, isAidPath } from "@/Top/Component/Aid/Navigator";
 import { navHistory, useNavHistoryTracker } from "@/Middle/Hook/Use-Nav-History";
 import { mobileSettingsStore } from "@/Top/Component/Settings/mobileSettingsStore";
+import { tryHandleBack } from "@/Middle/Hook/Use-Back-Handler";
 
 // Helper to extract and format page title from current path
 function getPageTitle(pathname: string): string {
