@@ -12,6 +12,7 @@ import { Container } from "@/Top/Component/UI/Container";
 import { Button } from "@/Top/Component/UI/Button";
 import { useApp } from "@/Middle/Context/App";
 import { useAudio } from "@/Middle/Context/Audio";
+import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 import { WordTooltip, useAudioPlayback } from "../Quran/Layout/Safhah/Utility";
 import type { AssembledVerse, SurahMeta } from "@/Bottom/API/Quran";
 
