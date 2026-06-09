@@ -15,7 +15,10 @@ const Aid = () => {
     { to: "/Aid/Dua", label: "Dua" },
     { to: "/Aid/Arabic", label: "Arabic" },
     { to: "/Aid/AI", label: "AI Assistant" },
-
+    { to: "/Aid/Names", label: "99 Names of Allah" },
+    { to: "/Aid/Namaz", label: "How to Pray Namaz" },
+    { to: "/Aid/Feeling", label: "I am Feeling" },
+    { to: "/Aid/Prophets", label: "25 Prophets" },
   ];
 
   return (
