@@ -283,8 +283,44 @@ export const PageLines = memo(function PageLines({
   // Determine flex justification class
   const flexJustifyClass = justifyLines ? "justify-between" : "justify-center";
 
+  // ---- Fit detection: if any per-line layout overflows the container,
+  //      fall back to a flowing block of words.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [blockMode, setBlockMode] = useState(false);
+  const [reflowThreshold, setReflowThreshold] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const check = () => {
+      const w = el.clientWidth;
+      if (blockMode) {
+        if (reflowThreshold !== null && w >= reflowThreshold) {
+          setBlockMode(false);
+          setReflowThreshold(null);
+        }
+        return;
+      }
+      const lines = el.querySelectorAll<HTMLElement>("[data-line-container]");
+      let overflow = false;
+      lines.forEach((line) => {
+        if (line.scrollWidth > line.clientWidth + 1) overflow = true;
+      });
+      if (overflow) {
+        setReflowThreshold(w + 60);
+        setBlockMode(true);
+      }
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [blockMode, reflowThreshold, resolvedLines]);
+
+  const flatWords = useMemo(() => resolvedLines.flat(), [resolvedLines]);
+
   return (
-    <div className="space-y-2 p-4"> {/* Added padding: top, right, bottom, left */}
+    <div className="space-y-2 p-4">
       {bismillahWords.length > 0 && (
         <Bismillah
           words={bismillahWords}
@@ -301,6 +337,7 @@ export const PageLines = memo(function PageLines({
       )}
 
       <div
+        ref={containerRef}
         className={fontClass}
         style={{
           fontSize: arabicFontSize,
@@ -309,17 +346,27 @@ export const PageLines = memo(function PageLines({
         }}
         dir="rtl"
       >
-        {resolvedLines.map((line, lineIdx) => (
+        {blockMode ? (
           <div
-            key={lineIdx}
-            className={`flex ${flexJustifyClass} items-start flex-wrap ${anyInlineActive ? "gap-x-3 mb-6" : "mb-0"}`}
+            className={`flex flex-wrap items-start ${anyInlineActive ? "gap-x-3" : ""}`}
             style={{ width: "100%" }}
             dir="rtl"
-            data-line-container
           >
-            {line.map((word, wordIdx) => renderWordColumn(word, wordIdx, true))}
+            {flatWords.map((word, idx) => renderWordColumn(word, idx, false))}
           </div>
-        ))}
+        ) : (
+          resolvedLines.map((line, lineIdx) => (
+            <div
+              key={lineIdx}
+              className={`flex ${flexJustifyClass} items-start flex-wrap ${anyInlineActive ? "gap-x-3 mb-6" : "mb-0"}`}
+              style={{ width: "100%" }}
+              dir="rtl"
+              data-line-container
+            >
+              {line.map((word, wordIdx) => renderWordColumn(word, wordIdx, true))}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
