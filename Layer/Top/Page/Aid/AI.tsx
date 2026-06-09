@@ -11,12 +11,16 @@ import {
   Search,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelLeft,
   MessageSquare,
   Trash2,
   RotateCcw,
   ThumbsUp,
   ThumbsDown,
   Copy,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { supabase } from "@/Bottom/Integration/Supabase/client";
@@ -24,17 +28,11 @@ import { cn } from "@/Middle/Library/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Thread = { id: string; title: string; messages: Msg[]; updatedAt: number };
+type SidebarMode = "maximized" | "minimized" | "closed";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/ai-chat`;
 const STORAGE_KEY = "ai-threads-v1";
-
-const EXAMPLES = [
-  "What does Surah Al-Fatihah mean?",
-  "Summarize a hadith about kindness.",
-  "Explain the pillars of Islam.",
-  "Give me a short dua before sleeping.",
-];
 
 function loadThreads(): Thread[] {
   if (typeof window === "undefined") return [];
@@ -67,11 +65,13 @@ export default function AI() {
     const existing = loadThreads();
     return existing[0]?.id ?? "";
   });
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>("maximized");
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -109,6 +109,12 @@ export default function AI() {
   }, [threads, search]);
 
   const newChat = () => {
+    // Only create a new chat if the active one has at least one message.
+    if (active && active.messages.length === 0) {
+      setInput("");
+      taRef.current?.focus();
+      return;
+    }
     const t = makeThread();
     setThreads((prev) => [t, ...prev]);
     setActiveId(t.id);
@@ -173,22 +179,39 @@ export default function AI() {
     await sendMessages(nextMessages);
   };
 
-  const regenerate = async () => {
+  const regenerateFrom = async (userIdx: number) => {
     if (!active || loading) return;
-    // drop last assistant message and resend
-    const msgs = [...active.messages];
-    if (msgs.length === 0) return;
-    if (msgs[msgs.length - 1].role === "assistant") msgs.pop();
-    if (msgs.length === 0) return;
+    const msgs = active.messages.slice(0, userIdx + 1);
     updateActive((t) => ({ ...t, messages: msgs, updatedAt: Date.now() }));
+    await sendMessages(msgs);
+  };
+
+  const startEdit = (idx: number, current: string) => {
+    setEditingIdx(idx);
+    setEditingValue(current);
+  };
+
+  const saveEdit = async (idx: number) => {
+    if (!active) return;
+    const value = editingValue.trim();
+    if (!value) return;
+    const msgs = active.messages.slice(0, idx);
+    msgs.push({ role: "user", content: value });
+    updateActive((t) => ({ ...t, messages: msgs, updatedAt: Date.now() }));
+    setEditingIdx(null);
+    setEditingValue("");
     await sendMessages(msgs);
   };
 
   const isEmpty = messages.length === 0;
 
+  const cycleSidebar = () => {
+    setSidebarMode((m) => (m === "maximized" ? "minimized" : m === "minimized" ? "closed" : "maximized"));
+  };
+
   const composer = (
-    <div className="w-full">
-      <Container className="!p-2 flex gap-2 items-end">
+    <div className="w-full flex gap-2 items-end">
+      <Container className="flex-1 !p-1">
         <Textarea
           ref={taRef}
           value={input}
@@ -203,144 +226,173 @@ export default function AI() {
           rows={1}
           className="resize-none min-h-[40px] max-h-32 border-0 bg-transparent focus-visible:ring-0 shadow-none"
         />
-        <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full">
-          <Send className="h-4 w-4" />
-        </Button>
       </Container>
-      {!isEmpty && (
-        <div className="flex items-center justify-center gap-1 mt-2">
-          <Button size="sm" variant="ghost" onClick={regenerate} disabled={loading} className="h-7 px-2 text-xs">
-            <RotateCcw className="h-3 w-3 mr-1" /> Regenerate
-          </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7"
-            onClick={() => {
-              const last = [...messages].reverse().find((m) => m.role === "assistant");
-              if (last) {
-                navigator.clipboard.writeText(last.content);
-                toast({ title: "Copied" });
-              }
-            }}>
-            <Copy className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toast({ title: "Thanks for the feedback" })}>
-            <ThumbsUp className="h-3.5 w-3.5" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toast({ title: "Thanks for the feedback" })}>
-            <ThumbsDown className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
+      <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-12 w-12 shrink-0">
+        <Send className="h-4 w-4" />
+      </Button>
     </div>
   );
+
+  const lastAssistantIdx = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === "assistant") return i;
+    return -1;
+  })();
 
   return (
     <Layout hideFooter>
       <div className="flex gap-3 w-full" style={{ height: "calc(100vh - 6rem)" }}>
         {/* Sidebar */}
-        <aside className={cn("flex flex-col shrink-0 transition-all duration-200", sidebarCollapsed ? "w-12" : "w-60")}>
-          {/* 3 buttons row */}
-          <div className="flex items-center gap-1 mb-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setSidebarCollapsed((c) => !c)}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        {sidebarMode !== "closed" && (
+          <aside className={cn("flex flex-col shrink-0 transition-all duration-200", sidebarMode === "minimized" ? "w-12" : "w-60")}>
+            <div className="flex items-center gap-1 mb-2">
+              <Button size="icon" variant="ghost" onClick={cycleSidebar} title="Toggle sidebar">
+                {sidebarMode === "maximized" ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+              </Button>
+              {sidebarMode === "maximized" && (
+                <>
+                  <Button size="icon" variant="ghost" onClick={() => setShowSearch((s) => !s)} title="Search">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={newChat} title="New chat">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {sidebarMode === "maximized" && showSearch && (
+              <Input
+                placeholder="Search chats..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 text-xs mb-2"
+              />
+            )}
+
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {filteredThreads.map((t) => (
+                <Button
+                  key={t.id}
+                  variant="ghost"
+                  active={t.id === activeId}
+                  fullWidth
+                  onClick={() => setActiveId(t.id)}
+                  className={cn(
+                    "group justify-start gap-2 !px-2 !py-2 text-sm h-auto",
+                    sidebarMode === "minimized" && "justify-center"
+                  )}
+                  title={t.title}
+                >
+                  <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  {sidebarMode === "maximized" && (
+                    <>
+                      <span className="flex-1 truncate text-left">{t.title}</span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteThread(t.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </span>
+                    </>
+                  )}
+                </Button>
+              ))}
+              {sidebarMode === "maximized" && filteredThreads.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">No chats</p>
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Floating reopen button when sidebar closed */}
+        {sidebarMode === "closed" && (
+          <div className="shrink-0">
+            <Button size="icon" variant="ghost" onClick={() => setSidebarMode("maximized")} title="Open sidebar">
+              <PanelLeftOpen className="h-4 w-4" />
             </Button>
-            {!sidebarCollapsed && (
-              <>
-                <Button size="icon" variant="ghost" onClick={() => setShowSearch((s) => !s)} title="Search">
-                  <Search className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={newChat} title="New chat">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </>
-            )}
           </div>
-
-          {!sidebarCollapsed && showSearch && (
-            <Input
-              placeholder="Search chats..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-xs mb-2"
-            />
-          )}
-
-          {/* Chats as plain buttons */}
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {filteredThreads.map((t) => (
-              <div
-                key={t.id}
-                onClick={() => setActiveId(t.id)}
-                className={cn(
-                  "group flex items-center gap-2 rounded-xl px-2 py-2 text-sm cursor-pointer transition-colors",
-                  t.id === activeId ? "bg-accent" : "hover:bg-accent/50",
-                  sidebarCollapsed && "justify-center"
-                )}
-                title={t.title}
-              >
-                <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="flex-1 truncate">{t.title}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteThread(t.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                      aria-label="Delete chat"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </>
-                )}
-              </div>
-            ))}
-            {!sidebarCollapsed && filteredThreads.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">No chats</p>
-            )}
-          </div>
-        </aside>
+        )}
 
         {/* Chat area */}
         <div className="flex-1 flex flex-col min-w-0">
           {isEmpty ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-6">
-              <div className="w-full max-w-2xl space-y-4">
-                {composer}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {EXAMPLES.map((ex) => (
-                    <button
-                      key={ex}
-                      onClick={() => send(ex)}
-                      className="text-left text-sm rounded-2xl border border-border px-3 py-2 hover:bg-accent transition-colors"
-                    >
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="flex-1 flex items-center justify-center px-2 sm:px-6">
+              <div className="w-full max-w-2xl">{composer}</div>
             </div>
           ) : (
             <>
-              <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-2 space-y-3">
-                {messages.map((m, i) => (
-                  <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-                    {m.role === "user" ? (
-                      <div className="max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap bg-primary text-primary-foreground">
-                        {m.content}
+              <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-2 space-y-4">
+                {messages.map((m, i) => {
+                  const isUser = m.role === "user";
+                  const isLastAssistant = !isUser && i === lastAssistantIdx;
+                  const editing = isUser && editingIdx === i;
+                  return (
+                    <div key={i} className={cn("flex flex-col gap-1.5", isUser ? "items-end" : "items-start")}>
+                      <Container className={cn("!p-3 max-w-[85%]", editing && "w-full")}>
+                        {editing ? (
+                          <Textarea
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            rows={2}
+                            className="border-0 bg-transparent focus-visible:ring-0 shadow-none min-h-[60px]"
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="text-sm whitespace-pre-wrap">{m.content}</div>
+                        )}
+                      </Container>
+                      <div className={cn("flex items-center gap-1", isUser ? "justify-end" : "justify-start")}>
+                        {isUser && !editing && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => startEdit(i, m.content)} className="h-7 px-2 text-xs">
+                              <Pencil className="h-3 w-3 mr-1" /> Edit
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7"
+                              onClick={() => { navigator.clipboard.writeText(m.content); toast({ title: "Copied" }); }}>
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        {isUser && editing && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => saveEdit(i)} className="h-7 px-2 text-xs">
+                              <Check className="h-3 w-3 mr-1" /> Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setEditingIdx(null); setEditingValue(""); }} className="h-7 px-2 text-xs">
+                              <X className="h-3 w-3 mr-1" /> Cancel
+                            </Button>
+                          </>
+                        )}
+                        {isLastAssistant && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => {
+                              // find user msg before this assistant
+                              for (let j = i - 1; j >= 0; j--) if (messages[j].role === "user") { regenerateFrom(j); break; }
+                            }} disabled={loading} className="h-7 px-2 text-xs">
+                              <RotateCcw className="h-3 w-3 mr-1" /> Regenerate
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7"
+                              onClick={() => { navigator.clipboard.writeText(m.content); toast({ title: "Copied" }); }}>
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toast({ title: "Thanks for the feedback" })}>
+                              <ThumbsUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toast({ title: "Thanks for the feedback" })}>
+                              <ThumbsDown className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <div className="max-w-[85%] text-sm whitespace-pre-wrap text-foreground">
-                        {m.content}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
                 {loading && (
                   <div className="flex justify-start">
                     <div className="text-sm flex items-center gap-2 text-muted-foreground">

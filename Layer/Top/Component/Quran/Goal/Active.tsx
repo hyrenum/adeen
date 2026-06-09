@@ -89,7 +89,7 @@ export function Active({
   if (!activeGoal) return null;
 
   return (
-    <div className="space-y-4 -mt-12 md:-mt-16 -mx-2 sm:-mx-4">
+    <div className="space-y-4">
       {/* Hero ring + Current Position + stats */}
       <Container className="!p-5 sm:!p-7">
         <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
@@ -129,34 +129,6 @@ export function Active({
           </div>
         </div>
       </Container>
-
-      {/* Today (time-based) - bars only, no time-remaining duplication */}
-      {activeGoal.goal_type === "time_based" && dailyTarget > 0 && (
-        <Container className="!p-4 sm:!p-5">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-sm font-semibold">
-              {todayMinutes}:{String(todaySeconds).padStart(2, "0")} / {dailyTarget}m
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {isGoalCompleted ? "✓ Complete" : `${Math.min(todayPercentage, 100)}%`}
-            </span>
-          </div>
-          <div className="flex gap-0.5">
-            {Array.from({ length: 20 }).map((_, i) => {
-              const filled = i < Math.round((Math.min(todayPercentage, 100) / 100) * 20);
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    "h-2 flex-1 rounded-sm transition-colors duration-500",
-                    filled ? "bg-foreground" : "bg-muted"
-                  )}
-                />
-              );
-            })}
-          </div>
-        </Container>
-      )}
 
       {/* Khatm day */}
       {activeGoal.goal_type === "khatm" && dayProgress && (

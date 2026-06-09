@@ -46,6 +46,11 @@ import ArabicCategory   from "@/Top/Page/Aid/Arabic/Category";
 import ArabicSubcategory from "@/Top/Page/Aid/Arabic/Subcategory";
 import ArabicWordPage   from "@/Top/Page/Aid/Arabic/Word";
 import AIAssistant       from "@/Top/Page/Aid/AI";
+import Names              from "@/Top/Page/Aid/Names";
+import Namaz              from "@/Top/Page/Aid/Namaz";
+import Feeling            from "@/Top/Page/Aid/Feeling";
+import ProphetsIndex      from "@/Top/Page/Aid/Prophets/Index";
+import ProphetDetail      from "@/Top/Page/Aid/Prophets/Detail";
 
 
 // General
@@ -122,6 +127,11 @@ const App = () => (
                   <Route path="/Aid/Arabic/:categoryId/:subId" element={<ArabicSubcategory />} />
                   <Route path="/Aid/Arabic/:categoryId/:subId/:wordId" element={<ArabicWordPage />} />
                   <Route path="/Aid/AI" element={<AIAssistant />} />
+                  <Route path="/Aid/Names" element={<Names />} />
+                  <Route path="/Aid/Namaz" element={<Namaz />} />
+                  <Route path="/Aid/Feeling" element={<Feeling />} />
+                  <Route path="/Aid/Prophets" element={<ProphetsIndex />} />
+                  <Route path="/Aid/Prophets/:name" element={<ProphetDetail />} />
 
 
                   {/* General */}
