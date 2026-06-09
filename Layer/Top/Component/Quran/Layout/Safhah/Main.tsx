@@ -304,7 +304,10 @@ export const PageLines = memo(function PageLines({
       const lines = el.querySelectorAll<HTMLElement>("[data-line-container]");
       let overflow = false;
       lines.forEach((line) => {
-        if (line.scrollWidth > line.clientWidth + 1) overflow = true;
+        const first = line.firstElementChild as HTMLElement | null;
+        if (!first) return;
+        // If a line wraps to more than one visual row, fall back to block mode.
+        if (line.offsetHeight > first.offsetHeight * 1.4) overflow = true;
       });
       if (overflow) {
         setReflowThreshold(w + 60);
