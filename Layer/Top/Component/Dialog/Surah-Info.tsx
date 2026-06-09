@@ -30,6 +30,7 @@ export const SurahInfoDialog = memo(function SurahInfoDialog({ open, onOpenChang
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const surah = surahList.find((s) => s.id === surahId);
+  useBackHandler(open, () => onOpenChange(false));
 
   const { surahInfoProvider, surahInfoTextSize } = useApp();
 
