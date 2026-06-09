@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from "react";
+import React, { memo, useMemo, useState, useRef, useLayoutEffect } from "react";
 import { useApp } from "@/Middle/Context/App";
 import { useAudio } from "@/Middle/Context/Audio";
 import { WordTooltip, useAudioPlayback, extractVerseNumberFromMarker } from "./Utility";
