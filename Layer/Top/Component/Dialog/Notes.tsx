@@ -45,6 +45,7 @@ export const NotesDialog = memo(function NotesDialog({
   const [hoveredVerse, setHoveredVerse] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  useBackHandler(open, () => onOpenChange(false));
 
   const surah = surahList.find((s) => s.id === surahId);
   const existingNote = getNote(surahId, ayahId);
