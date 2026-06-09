@@ -12,6 +12,7 @@ import { Container } from "@/Top/Component/UI/Container";
 import { Button } from "@/Top/Component/UI/Button";
 import { useApp } from "@/Middle/Context/App";
 import { useAudio } from "@/Middle/Context/Audio";
+import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 import { WordTooltip, useAudioPlayback } from "../Quran/Layout/Safhah/Utility";
 import type { AssembledVerse, SurahMeta } from "@/Bottom/API/Quran";
 
@@ -44,6 +45,7 @@ export const NotesDialog = memo(function NotesDialog({
   const [hoveredVerse, setHoveredVerse] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  useBackHandler(open, () => onOpenChange(false));
 
   const surah = surahList.find((s) => s.id === surahId);
   const existingNote = getNote(surahId, ayahId);
@@ -228,9 +230,9 @@ export const NotesDialog = memo(function NotesDialog({
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-40 bg-background pt-[72px]">
+      <div className="fixed inset-0 z-40 bg-background pt-12 md:pt-16">
         <div ref={scrollRef} className="h-full overflow-y-auto overscroll-contain">
-          <div className="p-4 space-y-4">
+          <div className="px-2 sm:px-4 pb-6">
             {renderContent()}
           </div>
         </div>
@@ -239,9 +241,9 @@ export const NotesDialog = memo(function NotesDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-background pt-[72px]">
+    <div className="fixed inset-0 z-40 bg-background pt-12 md:pt-16">
       <ScrollArea className="h-full" ref={scrollRef}>
-        <div className="p-6 mx-auto max-w-2xl">
+        <div className="px-2 sm:px-4 pb-6">
           {renderContent()}
         </div>
       </ScrollArea>

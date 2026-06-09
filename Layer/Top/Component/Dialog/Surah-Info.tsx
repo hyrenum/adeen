@@ -6,6 +6,7 @@ import { useIsMobile } from "@/Middle/Hook/Use-Mobile";
 import { ScrollArea } from "@/Top/Component/UI/Scroll-Area";
 import { Container } from "@/Top/Component/UI/Container";
 import { useApp } from "@/Middle/Context/App";
+import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 
 interface ChapterInfo {
   chapter_id: number;
@@ -29,6 +30,7 @@ export const SurahInfoDialog = memo(function SurahInfoDialog({ open, onOpenChang
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const surah = surahList.find((s) => s.id === surahId);
+  useBackHandler(open, () => onOpenChange(false));
 
   const { surahInfoProvider, surahInfoTextSize } = useApp();
 

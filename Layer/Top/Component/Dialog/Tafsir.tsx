@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useIsMobile } from "@/Middle/Hook/Use-Mobile";
 import { useApp } from "@/Middle/Context/App";
+import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 
 // ============== TYPES ==============
 interface TafsirDialogProps {
@@ -61,6 +62,7 @@ export const TafsirDialog = memo(function TafsirDialog({
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { tafsirProvider, tafsirTextSize } = useApp();
+  useBackHandler(open, () => onOpenChange(false));
   
   const [currentVerse, setCurrentVerse] = useState(verseNumber);
   const [tafsirText, setTafsirText] = useState<string | null>(null);
