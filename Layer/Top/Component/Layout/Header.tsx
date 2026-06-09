@@ -129,6 +129,9 @@ export const Header = memo(function Header() {
   const handleBack = useCallback(() => {
     if (isSearchMode) { closeSearchMode(); return; }
 
+    // Close any open registered dialog (Notes, Tafsir, Surah Info, etc.)
+    if (tryHandleBack()) return;
+
     // Mobile settings: delegate to settings store (which knows nested modal stack, etc.)
     if (isMobileSettingsOpen) {
       mobileSettingsStore.goBack();
