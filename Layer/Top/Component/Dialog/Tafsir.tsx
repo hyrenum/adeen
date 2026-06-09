@@ -61,6 +61,7 @@ export const TafsirDialog = memo(function TafsirDialog({
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { tafsirProvider, tafsirTextSize } = useApp();
+  useBackHandler(open, () => onOpenChange(false));
   
   const [currentVerse, setCurrentVerse] = useState(verseNumber);
   const [tafsirText, setTafsirText] = useState<string | null>(null);
