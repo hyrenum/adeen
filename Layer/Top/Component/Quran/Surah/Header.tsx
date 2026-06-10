@@ -23,6 +23,7 @@ export function SurahHeader({
   onInfoClick,
   onTafsirClick,
   onAudioClick,
+  onRenderClick,
 }: SurahHeaderProps) {
   const { t } = useTranslation();
   const {
