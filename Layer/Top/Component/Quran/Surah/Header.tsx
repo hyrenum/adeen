@@ -1,4 +1,4 @@
-import { Info, Play, Pause, Loader2, BookOpen } from "lucide-react";
+import { Info, Play, Pause, Loader2, BookOpen, Video } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/Top/Component/UI/tooltip";
 import { useAudio } from "@/Middle/Context/Audio";
 import { useTranslation } from "@/Middle/Hook/Use-Translation";
@@ -13,6 +13,7 @@ interface SurahHeaderProps {
   onInfoClick: () => void;
   onTafsirClick: () => void;
   onAudioClick: () => void;
+  onRenderClick?: () => void;
 }
 
 export function SurahHeader({
