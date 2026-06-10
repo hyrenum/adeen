@@ -251,7 +251,9 @@ const Surah = () => {
           onInfoClick={() => setSurahInfoDialog(true)}
           onAudioClick={() => setShowAudioPlayer(true)}
           onTafsirClick={() => setTafsirDialog({ open: true, verseNumber: 1 })}
+          onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
         />
+
 
         <div ref={containerRef} className="w-full">
           {isPageLayout ? (
