@@ -389,9 +389,9 @@ export function Aid_Navigator() {
 
   if (isIndexOnly) {
     return (
-      <span className="inline-flex items-center px-3 py-1 h-8 sm:h-9 text-sm font-medium truncate max-w-[200px] sm:max-w-[280px]">
-        {buttonLabel}
-      </span>
+      <Container className="!py-1 !px-3 inline-flex w-auto max-w-[70%]">
+        <span className="text-sm font-medium truncate">{buttonLabel}</span>
+      </Container>
     );
   }
 
