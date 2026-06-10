@@ -153,11 +153,15 @@ export default function AI() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Request failed");
+      const reply = data.reply || "";
+      const tid = activeId;
+      // Append empty assistant message, then animate typing
       updateActive((t) => ({
         ...t,
-        messages: [...msgs, { role: "assistant", content: data.reply || "" }],
+        messages: [...msgs, { role: "assistant", content: "" }],
         updatedAt: Date.now(),
       }));
+      setTypingTarget({ threadId: tid, idx: msgs.length, full: reply, shown: 0 });
     } catch (e) {
       toast({ title: "AI error", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -165,6 +169,34 @@ export default function AI() {
       setTimeout(() => taRef.current?.focus(), 0);
     }
   };
+
+  // Typewriter effect for assistant replies
+  useEffect(() => {
+    if (!typingTarget) return;
+    if (typingTarget.shown >= typingTarget.full.length) {
+      setTypingTarget(null);
+      return;
+    }
+    const step = Math.max(1, Math.round(typingTarget.full.length / 200));
+    const timer = setTimeout(() => {
+      const nextShown = Math.min(typingTarget.full.length, typingTarget.shown + step);
+      const partial = typingTarget.full.slice(0, nextShown);
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === typingTarget.threadId
+            ? {
+                ...t,
+                messages: t.messages.map((m, i) =>
+                  i === typingTarget.idx ? { ...m, content: partial } : m
+                ),
+              }
+            : t
+        )
+      );
+      setTypingTarget((tt) => (tt ? { ...tt, shown: nextShown } : tt));
+    }, 25);
+    return () => clearTimeout(timer);
+  }, [typingTarget]);
 
   const send = async (text?: string) => {
     const value = (text ?? input).trim();
