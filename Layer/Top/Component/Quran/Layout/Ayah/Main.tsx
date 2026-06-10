@@ -1,5 +1,5 @@
 // Layer/Top/Component/Quran/Layout/Safhah/Ayah/Main.tsx
-import { Copy, MoreHorizontal, Bookmark, FileText, Share2, BookMarked, BookOpen } from "lucide-react";
+import { Copy, MoreHorizontal, Bookmark, FileText, Share2, BookMarked, BookOpen, Video, Code2 } from "lucide-react";
 import { cn } from "@/Middle/Library/utils";
 import { useBookmarks } from "@/Middle/Hook/Use-Bookmarks";
 import { useAuth } from "@/Middle/Context/Auth";
