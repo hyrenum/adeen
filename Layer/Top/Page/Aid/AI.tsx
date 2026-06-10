@@ -244,23 +244,21 @@ export default function AI() {
 
   const composer = (
     <div className="w-full flex gap-2 items-end">
-      <Container className="flex-1 !p-1">
-        <Textarea
-          ref={taRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="Ask anything..."
-          rows={1}
-          className="resize-none min-h-[40px] max-h-32 border-0 bg-transparent focus-visible:ring-0 shadow-none"
-        />
-      </Container>
-      <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-12 w-12 shrink-0">
+      <Textarea
+        ref={taRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            send();
+          }
+        }}
+        placeholder="Ask anything..."
+        rows={1}
+        className="flex-1 resize-none min-h-[44px] max-h-32 rounded-xl border border-border bg-transparent px-3 py-2"
+      />
+      <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-11 w-11 shrink-0">
         <Send className="h-4 w-4" />
       </Button>
     </div>
