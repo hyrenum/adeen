@@ -142,20 +142,16 @@ export const Header = memo(function Header() {
     if (isSettingsSidebarOpen) { setSettingsSidebarOpen(false); return; }
     if (isHome) return;
 
-    // 1) Prefer our in-memory distinct history (skips duplicate consecutive actions)
+    // Always use our in-memory distinct history. When exhausted, it climbs
+    // one URL segment automatically. We avoid `navigate(-1)` because the
+    // browser back-stack often causes A↔B ping-pong on direct loads.
     const target = navHistory.popDistinct(location.pathname);
     if (target) {
       navigate(target);
       return;
     }
 
-    // 2) Then real browser history if any
-    if (window.history.length > 2) {
-      navigate(-1);
-      return;
-    }
-
-    // 3) Fallback: climb URL segments
+    // Final fallback: climb segments
     const segments = location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
     if (segments.length <= 1) { navigate("/"); return; }
     segments.pop();
