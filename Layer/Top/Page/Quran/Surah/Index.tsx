@@ -294,6 +294,8 @@ const Surah = () => {
               onShareClick={(ayahId, verseText, translation) =>
                 setShareDialog({ open: true, ayahId, verseText, translation })
               }
+              onEmbedClick={(ayahId) => setRenderDialog({ open: true, mode: "embed", ayah: ayahId })}
+              onRenderClick={(ayahId) => setRenderDialog({ open: true, mode: "render", ayah: ayahId })}
               hoverTransliteration={hoverTransliteration}
               inlineTransliteration={inlineTransliteration}
             />
