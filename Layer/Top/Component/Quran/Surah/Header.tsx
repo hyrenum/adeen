@@ -87,6 +87,18 @@ export function SurahHeader({
                 <TooltipContent side="bottom">{t.quran.surahInfo}</TooltipContent>
               </Tooltip>
 
+              {onRenderClick && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" onClick={onRenderClick} aria-label="Render video">
+                      <Video className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Render Video</TooltipContent>
+                </Tooltip>
+              )}
+
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
