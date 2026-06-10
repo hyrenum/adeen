@@ -15,6 +15,8 @@ export function AyahView({
   onNotesClick,
   onShareClick,
   onTafsirClick,
+  onEmbedClick,
+  onRenderClick,
   hoverTransliteration,
   inlineTransliteration,
 }: AyahViewProps) {
@@ -43,6 +45,8 @@ export function AyahView({
           onNotesClick={() => onNotesClick(verse.verseNumber, verse.arabic)}
           onShareClick={() => onShareClick(verse.verseNumber, verse.arabic, verse.translation)}
           onTafsirClick={() => onTafsirClick(verse.verseNumber)}
+          onEmbedClick={onEmbedClick ? () => onEmbedClick(verse.verseNumber) : undefined}
+          onRenderClick={onRenderClick ? () => onRenderClick(verse.verseNumber) : undefined}
           hoverTransliteration={hoverTransliteration}
           inlineTransliteration={inlineTransliteration}
         />
