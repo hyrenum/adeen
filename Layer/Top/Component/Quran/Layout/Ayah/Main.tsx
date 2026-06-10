@@ -206,6 +206,18 @@ export function VerseCard({
                     <Share2 className="h-4 w-4" />
                     {t.quran.share}
                   </DropdownMenuItem>
+                  {onRenderClick && (
+                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={onRenderClick}>
+                      <Video className="h-4 w-4" />
+                      Render Ayah
+                    </DropdownMenuItem>
+                  )}
+                  {onEmbedClick && (
+                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={onEmbedClick}>
+                      <Code2 className="h-4 w-4" />
+                      Embed Ayah
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </TooltipProvider>
