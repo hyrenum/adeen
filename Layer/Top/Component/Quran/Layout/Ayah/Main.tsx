@@ -31,6 +31,8 @@ export function VerseCard({
   onNotesClick,
   onShareClick,
   onTafsirClick,
+  onEmbedClick,
+  onRenderClick,
   hoverTransliteration,
   inlineTransliteration,
 }: VerseCardProps) {
