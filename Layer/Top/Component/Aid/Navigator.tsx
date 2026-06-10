@@ -364,7 +364,7 @@ export function Aid_Navigator() {
         const c = hadithCollections.find((x) => x.slug === route.collectionSlug);
         return c?.name ?? route.collectionSlug;
       }
-      return "Collections";
+      return "Hadith";
     }
     return "";
   }, [route]);
