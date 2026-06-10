@@ -70,7 +70,9 @@ export interface VerseCardProps {
   verseRef: (el: HTMLDivElement | null) => void;
   onNotesClick: () => void;
   onShareClick: () => void;
-  onTafsirClick: () => void;           // ✅ NEW
+  onTafsirClick: () => void;
+  onEmbedClick?: () => void;
+  onRenderClick?: () => void;
   hoverTransliteration: string | boolean;
   inlineTransliteration: string;
 }
@@ -87,7 +89,9 @@ export interface AyahViewProps {
   verseRefs: React.MutableRefObject<Map<number, HTMLDivElement>>;
   onNotesClick: (ayahId: number, verseText: string) => void;
   onShareClick: (ayahId: number, verseText: string, translation?: string) => void;
-  onTafsirClick: (ayahId: number) => void;   // ✅ NEW
+  onTafsirClick: (ayahId: number) => void;
+  onEmbedClick?: (ayahId: number) => void;
+  onRenderClick?: (ayahId: number) => void;
   hoverTransliteration: string | boolean;
   inlineTransliteration: string;
 }

@@ -16,6 +16,7 @@ import { useReadingSession } from "@/Middle/Hook/Use-Reading-Session";
 import { useQuranGoals } from "@/Middle/Hook/Use-Quran-Goals";
 import { Button } from "@/Top/Component/UI/button";
 import { TafsirDialog } from "@/Top/Component/Dialog/Tafsir";
+import { RenderSurahDialog } from "@/Top/Component/Dialog/Render-Surah";
 import { Container } from "@/Top/Component/UI/Container";
 import { AlertCircle, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
@@ -62,6 +63,7 @@ const Surah = () => {
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [surahInfoDialog, setSurahInfoDialog] = useState(false);
+  const [renderDialog, setRenderDialog] = useState<{ open: boolean; ayah?: number; mode: "render" | "embed" }>({ open: false, mode: "render" });
   const [tafsirDialog, setTafsirDialog] = useState<{
     open: boolean;
     verseNumber: number;
@@ -249,7 +251,9 @@ const Surah = () => {
           onInfoClick={() => setSurahInfoDialog(true)}
           onAudioClick={() => setShowAudioPlayer(true)}
           onTafsirClick={() => setTafsirDialog({ open: true, verseNumber: 1 })}
+          onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
         />
+
 
         <div ref={containerRef} className="w-full">
           {isPageLayout ? (
@@ -290,6 +294,8 @@ const Surah = () => {
               onShareClick={(ayahId, verseText, translation) =>
                 setShareDialog({ open: true, ayahId, verseText, translation })
               }
+              onEmbedClick={(ayahId) => setRenderDialog({ open: true, mode: "embed", ayah: ayahId })}
+              onRenderClick={(ayahId) => setRenderDialog({ open: true, mode: "render", ayah: ayahId })}
               hoverTransliteration={hoverTransliteration}
               inlineTransliteration={inlineTransliteration}
             />
@@ -343,6 +349,13 @@ const Surah = () => {
         surahId={surahId} surah={surah} />
       <TafsirDialog open={tafsirDialog.open} onOpenChange={(open) => setTafsirDialog(prev => ({ ...prev, open }))}
         surahId={surahId} verseNumber={tafsirDialog.verseNumber} />
+      <RenderSurahDialog
+        open={renderDialog.open}
+        onOpenChange={(o) => setRenderDialog((p) => ({ ...p, open: o }))}
+        surahId={surahId}
+        ayahNumber={renderDialog.ayah}
+        mode={renderDialog.mode}
+      />
     </Layout>
   );
 };

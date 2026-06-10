@@ -72,6 +72,7 @@ export default function AI() {
   const [loading, setLoading] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [typingTarget, setTypingTarget] = useState<{ threadId: string; idx: number; full: string; shown: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -152,11 +153,15 @@ export default function AI() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Request failed");
+      const reply = data.reply || "";
+      const tid = activeId;
+      // Append empty assistant message, then animate typing
       updateActive((t) => ({
         ...t,
-        messages: [...msgs, { role: "assistant", content: data.reply || "" }],
+        messages: [...msgs, { role: "assistant", content: "" }],
         updatedAt: Date.now(),
       }));
+      setTypingTarget({ threadId: tid, idx: msgs.length, full: reply, shown: 0 });
     } catch (e) {
       toast({ title: "AI error", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -164,6 +169,34 @@ export default function AI() {
       setTimeout(() => taRef.current?.focus(), 0);
     }
   };
+
+  // Typewriter effect for assistant replies
+  useEffect(() => {
+    if (!typingTarget) return;
+    if (typingTarget.shown >= typingTarget.full.length) {
+      setTypingTarget(null);
+      return;
+    }
+    const step = Math.max(1, Math.round(typingTarget.full.length / 200));
+    const timer = setTimeout(() => {
+      const nextShown = Math.min(typingTarget.full.length, typingTarget.shown + step);
+      const partial = typingTarget.full.slice(0, nextShown);
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === typingTarget.threadId
+            ? {
+                ...t,
+                messages: t.messages.map((m, i) =>
+                  i === typingTarget.idx ? { ...m, content: partial } : m
+                ),
+              }
+            : t
+        )
+      );
+      setTypingTarget((tt) => (tt ? { ...tt, shown: nextShown } : tt));
+    }, 25);
+    return () => clearTimeout(timer);
+  }, [typingTarget]);
 
   const send = async (text?: string) => {
     const value = (text ?? input).trim();
@@ -211,23 +244,21 @@ export default function AI() {
 
   const composer = (
     <div className="w-full flex gap-2 items-end">
-      <Container className="flex-1 !p-1">
-        <Textarea
-          ref={taRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="Ask anything..."
-          rows={1}
-          className="resize-none min-h-[40px] max-h-32 border-0 bg-transparent focus-visible:ring-0 shadow-none"
-        />
-      </Container>
-      <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-12 w-12 shrink-0">
+      <Textarea
+        ref={taRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            send();
+          }
+        }}
+        placeholder="Ask anything..."
+        rows={1}
+        className="flex-1 resize-none min-h-[44px] max-h-32 rounded-xl border border-border bg-transparent px-3 py-2"
+      />
+      <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-11 w-11 shrink-0">
         <Send className="h-4 w-4" />
       </Button>
     </div>
@@ -333,20 +364,29 @@ export default function AI() {
                   const isLastAssistant = !isUser && i === lastAssistantIdx;
                   const editing = isUser && editingIdx === i;
                   return (
-                    <div key={i} className={cn("flex flex-col gap-1.5", isUser ? "items-end" : "items-start")}>
-                      <Container className={cn("!p-3 max-w-[85%]", editing && "w-full")}>
-                        {editing ? (
-                          <Textarea
-                            value={editingValue}
-                            onChange={(e) => setEditingValue(e.target.value)}
-                            rows={2}
-                            className="border-0 bg-transparent focus-visible:ring-0 shadow-none min-h-[60px]"
-                            autoFocus
-                          />
-                        ) : (
+                    <div key={i} className={cn("flex flex-col gap-1.5", isUser ? "items-end" : "items-start", editing && "w-full")}>
+                      {editing ? (
+                        <Textarea
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          rows={2}
+                          className="w-full rounded-xl border border-border bg-transparent px-3 py-2 min-h-[60px]"
+                          autoFocus
+                        />
+                      ) : isUser ? (
+                        <Container className="!p-3 max-w-[85%]">
                           <div className="text-sm whitespace-pre-wrap">{m.content}</div>
-                        )}
-                      </Container>
+                        </Container>
+                      ) : (
+                        <Container className="!p-3 max-w-[85%]">
+                          <div className="text-sm whitespace-pre-wrap">
+                            {m.content}
+                            {typingTarget && typingTarget.threadId === active?.id && typingTarget.idx === i && (
+                              <span className="inline-block w-1.5 h-4 bg-current ml-0.5 align-middle animate-pulse" />
+                            )}
+                          </div>
+                        </Container>
+                      )}
                       <div className={cn("flex items-center gap-1", isUser ? "justify-end" : "justify-start")}>
                         {isUser && !editing && (
                           <>

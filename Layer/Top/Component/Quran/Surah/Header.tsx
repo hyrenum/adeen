@@ -1,4 +1,4 @@
-import { Info, Play, Pause, Loader2, BookOpen } from "lucide-react";
+import { Info, Play, Pause, Loader2, BookOpen, Video } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/Top/Component/UI/tooltip";
 import { useAudio } from "@/Middle/Context/Audio";
 import { useTranslation } from "@/Middle/Hook/Use-Translation";
@@ -13,6 +13,7 @@ interface SurahHeaderProps {
   onInfoClick: () => void;
   onTafsirClick: () => void;
   onAudioClick: () => void;
+  onRenderClick?: () => void;
 }
 
 export function SurahHeader({
@@ -22,6 +23,7 @@ export function SurahHeader({
   onInfoClick,
   onTafsirClick,
   onAudioClick,
+  onRenderClick,
 }: SurahHeaderProps) {
   const { t } = useTranslation();
   const {
@@ -84,6 +86,18 @@ export function SurahHeader({
                 </TooltipTrigger>
                 <TooltipContent side="bottom">{t.quran.surahInfo}</TooltipContent>
               </Tooltip>
+
+              {onRenderClick && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" onClick={onRenderClick} aria-label="Render video">
+                      <Video className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Render Video</TooltipContent>
+                </Tooltip>
+              )}
+
 
               <Tooltip>
                 <TooltipTrigger asChild>

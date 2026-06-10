@@ -1,6 +1,5 @@
 import { Layout } from "@/Top/Component/Layout/Index";
 import { Card } from "@/Top/Component/UI/Card";
-import { Container } from "@/Top/Component/UI/Container";
 import { hadithCollections } from "@/Bottom/API/Hadith";
 import { useTranslation } from "@/Middle/Hook/Use-Translation";
 import { Link } from "react-router-dom";
@@ -10,28 +9,21 @@ const Collection = () => {
 
   return (
     <Layout>
-      <div className="space-y-4">
-        <div className="flex justify-center">
-          <Container className="!py-1 !px-4 inline-flex w-auto">
-            <span className="text-sm font-medium">Hadith</span>
-          </Container>
-        </div>
-        <div className="flex flex-wrap gap-3 w-full">
-          {hadithCollections.map((collection) => (
-            <div key={collection.id} className="flex-1 min-w-[200px]">
-              <Link to={`/Hadith/${collection.slug}`} className="block">
-                <Card className="p-4 transition-all group">
-                  <h3 className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
-                    {collection.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1 [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
-                    {collection.hadithCount.toLocaleString()} {t.hadith.hadith}
-                  </p>
-                </Card>
-              </Link>
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-3 w-full">
+        {hadithCollections.map((collection) => (
+          <div key={collection.id} className="flex-1 min-w-[200px]">
+            <Link to={`/Hadith/${collection.slug}`} className="block">
+              <Card className="p-4 transition-all group">
+                <h3 className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                  {collection.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1 [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                  {collection.hadithCount.toLocaleString()} {t.hadith.hadith}
+                </p>
+              </Card>
+            </Link>
+          </div>
+        ))}
       </div>
     </Layout>
   );
