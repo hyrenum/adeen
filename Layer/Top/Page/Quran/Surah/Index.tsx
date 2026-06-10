@@ -349,6 +349,13 @@ const Surah = () => {
         surahId={surahId} surah={surah} />
       <TafsirDialog open={tafsirDialog.open} onOpenChange={(open) => setTafsirDialog(prev => ({ ...prev, open }))}
         surahId={surahId} verseNumber={tafsirDialog.verseNumber} />
+      <RenderSurahDialog
+        open={renderDialog.open}
+        onOpenChange={(o) => setRenderDialog((p) => ({ ...p, open: o }))}
+        surahId={surahId}
+        ayahNumber={renderDialog.ayah}
+        mode={renderDialog.mode}
+      />
     </Layout>
   );
 };
