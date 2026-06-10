@@ -118,7 +118,7 @@ export function RenderSurahDialog({
   useEffect(() => {
     if (!open || totalWords === 0) return;
     const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
-    return () => clearInterval(i));
+    return () => clearInterval(i);
   }, [open, totalWords]);
 
   // Cross-fade current verse translation
