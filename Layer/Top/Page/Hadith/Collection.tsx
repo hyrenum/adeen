@@ -1,6 +1,5 @@
 import { Layout } from "@/Top/Component/Layout/Index";
 import { Card } from "@/Top/Component/UI/Card";
-import { Container } from "@/Top/Component/UI/Container";
 import { hadithCollections } from "@/Bottom/API/Hadith";
 import { useTranslation } from "@/Middle/Hook/Use-Translation";
 import { Link } from "react-router-dom";
