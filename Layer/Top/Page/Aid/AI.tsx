@@ -72,6 +72,7 @@ export default function AI() {
   const [loading, setLoading] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [typingTarget, setTypingTarget] = useState<{ threadId: string; idx: number; full: string; shown: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
