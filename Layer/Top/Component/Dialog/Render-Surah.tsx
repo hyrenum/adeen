@@ -1,20 +1,13 @@
 // Layer/Top/Component/Dialog/Render-Surah.tsx
 // Full-screen Render / Embed overlay.
-// - Render mode: configures a video render (left config, right live preview).
-// - Embed mode: configures an <iframe> embed snippet for external websites.
-// - Closed by go-back button (registered via useBackHandler), like Tafsir/Surah-Info.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/Top/Component/UI/Button";
 import { Input } from "@/Top/Component/UI/Input";
 import { Label } from "@/Top/Component/UI/Label";
 import { Container } from "@/Top/Component/UI/Container";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/Top/Component/UI/Select";
 import { Switch } from "@/Top/Component/UI/Switch";
 import { ScrollArea } from "@/Top/Component/UI/Scroll-Area";
@@ -22,31 +15,41 @@ import { Slider } from "@/Top/Component/UI/Slider";
 import {
   surahList,
   getSurah,
+  getPageSegments,
   type AssembledSurah,
   type AssembledVerse,
   type QuranFontType,
 } from "@/Bottom/API/Quran";
 import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 import { cn } from "@/Middle/Library/utils";
-import { Maximize2, Minimize2, Plus, X, Copy } from "lucide-react";
+import { Maximize2, Minimize2, Plus, X, Copy, Download, Loader2 } from "lucide-react";
+import { toast } from "@/Middle/Hook/Use-Toast";
 
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
 type RenderFont = "uthmani" | "indopak" | "uthmani_v1" | "uthmani_v2" | "uthmani_v4";
 
 interface Config {
-  // Render: 1080p/720p/vertical. Embed: custom W/H.
   resolution: "1080p" | "720p" | "vertical";
   width: number;
   height: number;
 
   reciter: string;
   surahId: number;
-  ayahNumber: number | "all";
+  ayahStart: number;
+  ayahEnd: number;
 
   bgKind: "color" | "image" | "video";
   bgColor: string;
   bgUrl: string;
+
+  // Container (the inner card around the content)
+  containerBgKind: "color" | "image";
+  containerBg: string;
+  containerBgUrl: string;
+  borderColor: string;
+  borderWidth: number;
+  borderRadius: number;
 
   translations: string[];
   transliterations: string[];
@@ -79,7 +82,6 @@ interface Config {
 }
 
 const RECITERS = ["Mishary Rashid Alafasy", "Sa'd al-Ghamdi", "Maher al-Muaiqly"];
-
 const FONTS: { id: RenderFont; label: string }[] = [
   { id: "uthmani", label: "Uthmani (Hafs)" },
   { id: "indopak", label: "IndoPak" },
@@ -87,10 +89,8 @@ const FONTS: { id: RenderFont; label: string }[] = [
   { id: "uthmani_v2", label: "King Fahad Complex V2" },
   { id: "uthmani_v4", label: "King Fahad Complex V4" },
 ];
-
 const TRANSLATIONS = ["None", "Direct", "Saheeh-International"];
 const TRANSLITERATIONS = ["None", "Standard"];
-
 const RESOLUTIONS: Record<Config["resolution"], { w: number; h: number; label: string }> = {
   "1080p": { w: 1920, h: 1080, label: "1080p (16:9)" },
   "720p": { w: 1280, h: 720, label: "720p (16:9)" },
@@ -102,7 +102,6 @@ function fontToType(f: RenderFont): QuranFontType {
   if (f === "uthmani_v2" || f === "uthmani_v4") return "V2";
   return "Standard";
 }
-
 function fontClass(f: RenderFont): string {
   switch (f) {
     case "indopak":    return "font-indopak";
@@ -112,8 +111,26 @@ function fontClass(f: RenderFont): string {
     default:           return "font-uthmani";
   }
 }
+/** Return per-page font family name (e.g. "Uthmani-V2-3") for KFC variants. */
+function pageFontFamily(font: RenderFont, surahId: number, verseNumber: number): string | undefined {
+  if (font === "uthmani_v1" || font === "uthmani_v2" || font === "uthmani_v4") {
+    const version = font === "uthmani_v1" ? "1" : font === "uthmani_v2" ? "2" : "4";
+    // Walk pages until we find this verse's segment.
+    for (let pageNum = 1; pageNum <= 604; pageNum++) {
+      const segs = getPageSegments(pageNum);
+      if (!segs) continue;
+      const s = segs.find((x) => x.surah === surahId);
+      if (s && verseNumber >= s.startVerse && verseNumber <= s.endVerse) {
+        return `Uthmani-V${version}-${pageNum}`;
+      }
+    }
+    return `Uthmani-V${version}`;
+  }
+  if (font === "indopak") return "IndoPak";
+  return "Uthmani";
+}
 
-// ---- Color helpers (auto contrast) ----
+// ---- Color helpers ----
 function hexToRgb(hex: string): [number, number, number] {
   const m = hex.replace("#", "");
   const v = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
@@ -137,7 +154,6 @@ function contrastRatio(a: string, b: string): number {
   const [hi, lo] = L1 > L2 ? [L1, L2] : [L2, L1];
   return (hi + 0.05) / (lo + 0.05);
 }
-/** If color blends with bg, shift it toward white or black until readable. */
 function ensureReadable(color: string, bg: string, minRatio = 3.5): string {
   try {
     if (contrastRatio(color, bg) >= minRatio) return color;
@@ -167,11 +183,7 @@ interface Props {
 
 // ====================== Component ======================
 export function RenderSurahDialog({
-  open,
-  onOpenChange,
-  surahId,
-  ayahNumber,
-  mode = "render",
+  open, onOpenChange, surahId, ayahNumber, mode = "render",
 }: Props) {
   useBackHandler(open, () => onOpenChange(false));
 
@@ -179,13 +191,7 @@ export function RenderSurahDialog({
   const [fullscreen, setFullscreen] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (open) {
-      setCfg((c) => ({ ...c, surahId, ayahNumber: ayahNumber ?? (mode === "embed" ? 1 : "all") }));
-    }
-  }, [open, surahId, ayahNumber, mode]);
-
-  // Load Arabic content for the *currently selected font*.
+  // Load surah data first (so we can clamp range to count)
   const [surahData, setSurahData] = useState<AssembledSurah | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -200,6 +206,29 @@ export function RenderSurahDialog({
     return () => { cancelled = true; };
   }, [cfg.surahId, cfg.font, cfg.translations, cfg.transliterations]);
 
+  // Sync when caller props change
+  useEffect(() => {
+    if (!open) return;
+    setCfg((c) => ({
+      ...c,
+      surahId,
+      ayahStart: ayahNumber ?? 1,
+      ayahEnd: ayahNumber ?? c.ayahEnd,
+    }));
+  }, [open, surahId, ayahNumber]);
+
+  const totalAyahs = surahData?.verses.length ?? 0;
+  useEffect(() => {
+    if (!totalAyahs) return;
+    setCfg((c) => {
+      const start = Math.max(1, Math.min(c.ayahStart, totalAyahs));
+      const end = Math.max(start, Math.min(c.ayahEnd || totalAyahs, totalAyahs));
+      if (start === c.ayahStart && end === c.ayahEnd) return c;
+      return { ...c, ayahStart: start, ayahEnd: end };
+    });
+  }, [totalAyahs]);
+
+  // Extra translations / transliterations (loaded per font)
   const [extraTranslations, setExtraTranslations] = useState<Record<string, string[]>>({});
   const [extraTransliterations, setExtraTransliterations] = useState<Record<string, string[]>>({});
   useEffect(() => {
@@ -217,6 +246,7 @@ export function RenderSurahDialog({
     });
     return () => { cancelled = true; };
   }, [cfg.translations, cfg.surahId, cfg.font]);
+
   useEffect(() => {
     let cancelled = false;
     const sources = cfg.transliterations.filter((t) => t !== "None");
@@ -235,17 +265,18 @@ export function RenderSurahDialog({
 
   const allVerses: AssembledVerse[] = surahData?.verses ?? [];
   const verses = useMemo(
-    () => (cfg.ayahNumber === "all" ? allVerses : allVerses.filter((v) => v.verseNumber === cfg.ayahNumber)),
-    [allVerses, cfg.ayahNumber]
+    () => allVerses.filter((v) => v.verseNumber >= cfg.ayahStart && v.verseNumber <= cfg.ayahEnd),
+    [allVerses, cfg.ayahStart, cfg.ayahEnd]
   );
 
-  // Auto-contrast resolved colors
-  const arabicCol         = cfg.autoContrast ? ensureReadable(cfg.arabicColor, cfg.bgColor)         : cfg.arabicColor;
-  const translationCol    = cfg.autoContrast ? ensureReadable(cfg.translationColor, cfg.bgColor)    : cfg.translationColor;
-  const transliterationCol= cfg.autoContrast ? ensureReadable(cfg.transliterationColor, cfg.bgColor): cfg.transliterationColor;
-  const highlightCol      = cfg.autoContrast ? ensureReadable(cfg.highlightColor, cfg.bgColor)      : cfg.highlightColor;
+  // Auto-contrast
+  const containerBgColorForContrast = cfg.containerBgKind === "color" ? cfg.containerBg : cfg.bgColor;
+  const arabicCol         = cfg.autoContrast ? ensureReadable(cfg.arabicColor, containerBgColorForContrast)         : cfg.arabicColor;
+  const translationCol    = cfg.autoContrast ? ensureReadable(cfg.translationColor, containerBgColorForContrast)    : cfg.translationColor;
+  const transliterationCol= cfg.autoContrast ? ensureReadable(cfg.transliterationColor, containerBgColorForContrast): cfg.transliterationColor;
+  const highlightCol      = cfg.autoContrast ? ensureReadable(cfg.highlightColor, containerBgColorForContrast)      : cfg.highlightColor;
 
-  // Render-mode: highlight cycling
+  // Highlight cycling (render only)
   const totalWords = useMemo(() => verses.reduce((a, v) => a + v.words.length, 0), [verses]);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -253,7 +284,7 @@ export function RenderSurahDialog({
     setTick(0);
     const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
     return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahNumber, cfg.font, mode]);
+  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, cfg.font, mode]);
 
   const currentVerseIdx = useMemo(() => {
     let count = 0;
@@ -264,7 +295,7 @@ export function RenderSurahDialog({
     return 0;
   }, [tick, verses]);
 
-  const onFile = (field: "bgUrl" | "logoUrl", kindField?: "image" | "video") =>
+  const onFile = (field: "bgUrl" | "logoUrl" | "containerBgUrl", kindField?: "image" | "video") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const f = e.target.files?.[0];
       if (!f) return;
@@ -273,6 +304,7 @@ export function RenderSurahDialog({
         ...c,
         [field]: url,
         ...(kindField && field === "bgUrl" ? { bgKind: kindField } : {}),
+        ...(field === "containerBgUrl" ? { containerBgKind: "image" as const } : {}),
       }));
     };
 
@@ -298,7 +330,8 @@ export function RenderSurahDialog({
   const embedSnippet = useMemo(() => {
     const params = new URLSearchParams();
     params.set("surah", String(cfg.surahId));
-    if (cfg.ayahNumber !== "all") params.set("ayah", String(cfg.ayahNumber));
+    params.set("from", String(cfg.ayahStart));
+    params.set("to", String(cfg.ayahEnd));
     params.set("font", cfg.font);
     const trs = cfg.translations.filter((t) => t !== "None");
     const tls = cfg.transliterations.filter((t) => t !== "None");
@@ -309,17 +342,45 @@ export function RenderSurahDialog({
     if (cfg.showTafsir) params.set("tafsir", "1");
     if (cfg.showCopy) params.set("copy", "1");
     if (cfg.showShare) params.set("share", "1");
-    const url = `https://al-deen.org/embed?${params.toString()}`;
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://al-deen.org";
+    const url = `${origin}/Embed?${params.toString()}`;
     return `<iframe src="${url}" width="${cfg.width}" height="${cfg.height}" style="border:0;border-radius:12px" allow="autoplay" loading="lazy"></iframe>`;
   }, [cfg]);
 
+  // ---- Real render: canvas + MediaRecorder ----
+  const [rendering, setRendering] = useState(false);
+  const handleRender = useCallback(async () => {
+    if (rendering) return;
+    setRendering(true);
+    try {
+      await renderToWebm({
+        verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol,
+        extraTranslations, extraTransliterations,
+      });
+      toast({ title: "Video downloaded", description: "Saved as .webm to your downloads." });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Render failed", description: String((err as Error)?.message || err), variant: "destructive" });
+    } finally {
+      setRendering(false);
+    }
+  }, [rendering, verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
+
   if (!open) return null;
 
-  // ====================== Render ======================
+  // Container preview style
+  const containerStyle: React.CSSProperties = {
+    background: cfg.containerBgKind === "image" && cfg.containerBgUrl
+      ? `center/cover no-repeat url("${cfg.containerBgUrl}")`
+      : cfg.containerBg,
+    border: `${cfg.borderWidth}px solid ${cfg.borderColor}`,
+    borderRadius: cfg.borderRadius,
+  };
+
   return (
     <div className="fixed inset-0 z-40 bg-background">
       <ScrollArea className="h-full">
-        <div className={cn("p-3 sm:p-4 pt-[72px] mx-auto w-full", fullscreen ? "max-w-none" : "max-w-7xl")}>
+        <div className={cn("p-3 sm:p-4 pt-24 sm:pt-28 mx-auto w-full", fullscreen ? "max-w-none" : "max-w-7xl")}>
           <div className={cn(
             "grid gap-3",
             fullscreen ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[360px_1fr]"
@@ -343,14 +404,10 @@ export function RenderSurahDialog({
                     </Row>
                   ) : (
                     <>
-                      <Row label="Width">
-                        <Input type="number" value={cfg.width}
-                          onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} />
-                      </Row>
-                      <Row label="Height">
-                        <Input type="number" value={cfg.height}
-                          onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} />
-                      </Row>
+                      <Row label="Width"><Input type="number" value={cfg.width}
+                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                      <Row label="Height"><Input type="number" value={cfg.height}
+                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
                     </>
                   )}
                   {mode === "render" && (
@@ -364,7 +421,7 @@ export function RenderSurahDialog({
                     </Row>
                   )}
                   <Row label="Surah">
-                    <Select value={String(cfg.surahId)} onValueChange={(v) => setCfg((c) => ({ ...c, surahId: parseInt(v), ayahNumber: "all" }))}>
+                    <Select value={String(cfg.surahId)} onValueChange={(v) => setCfg((c) => ({ ...c, surahId: parseInt(v), ayahStart: 1, ayahEnd: 1 }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent className="max-h-72">
                         {surahList.map((s) => (
@@ -373,15 +430,23 @@ export function RenderSurahDialog({
                       </SelectContent>
                     </Select>
                   </Row>
-                  <Row label="Ayah">
-                    <Select
-                      value={String(cfg.ayahNumber)}
-                      onValueChange={(v) => setCfg((c) => ({ ...c, ayahNumber: v === "all" ? "all" : parseInt(v) }))}
-                    >
+                  <Row label="From Ayah">
+                    <Select value={String(cfg.ayahStart)} onValueChange={(v) => setCfg((c) => {
+                      const s = parseInt(v); return { ...c, ayahStart: s, ayahEnd: Math.max(s, c.ayahEnd) };
+                    })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent className="max-h-72">
-                        {mode === "render" && <SelectItem value="all">All</SelectItem>}
                         {allVerses.map((v) => (
+                          <SelectItem key={v.verseNumber} value={String(v.verseNumber)}>{v.verseNumber}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                  <Row label="To Ayah">
+                    <Select value={String(cfg.ayahEnd)} onValueChange={(v) => setCfg((c) => ({ ...c, ayahEnd: parseInt(v) }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {allVerses.filter((v) => v.verseNumber >= cfg.ayahStart).map((v) => (
                           <SelectItem key={v.verseNumber} value={String(v.verseNumber)}>{v.verseNumber}</SelectItem>
                         ))}
                       </SelectContent>
@@ -407,6 +472,28 @@ export function RenderSurahDialog({
                   </Container>
                 )}
 
+                {/* Container styling */}
+                <Container className="!px-4 !py-3">
+                  <SectionTitle>Container</SectionTitle>
+                  <Row label="Background">
+                    <input type="color" value={cfg.containerBg}
+                      onChange={(e) => setCfg((c) => ({ ...c, containerBg: e.target.value, containerBgKind: "color" }))}
+                      className="h-8 w-full rounded" />
+                  </Row>
+                  <Row label="Image">
+                    <Input type="file" accept="image/*" onChange={onFile("containerBgUrl")} className="text-xs" />
+                  </Row>
+                  <Row label="Border">
+                    <input type="color" value={cfg.borderColor}
+                      onChange={(e) => setCfg((c) => ({ ...c, borderColor: e.target.value }))}
+                      className="h-8 w-full rounded" />
+                  </Row>
+                  <SliderRow label="Border Width" value={cfg.borderWidth} min={0} max={12}
+                    onChange={(v) => setCfg((c) => ({ ...c, borderWidth: v }))} />
+                  <SliderRow label="Border Radius" value={cfg.borderRadius} min={0} max={64}
+                    onChange={(v) => setCfg((c) => ({ ...c, borderRadius: v }))} />
+                </Container>
+
                 {/* Font */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Font</SectionTitle>
@@ -418,7 +505,7 @@ export function RenderSurahDialog({
                   </Select>
                 </Container>
 
-                {/* WBW (both modes) */}
+                {/* WBW */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Word-by-Word</SectionTitle>
                   <ToggleRow label="Show WBW" value={cfg.showWBW}
@@ -561,16 +648,17 @@ export function RenderSurahDialog({
                   </Container>
                 )}
 
-                <Button className="w-full" onClick={() => {
-                  if (mode === "embed") {
+                {mode === "render" ? (
+                  <Button className="w-full gap-2" onClick={handleRender} disabled={rendering}>
+                    {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {rendering ? "Rendering…" : "Render & Download"}
+                  </Button>
+                ) : (
+                  <Button className="w-full gap-2" onClick={() => {
                     navigator.clipboard?.writeText(embedSnippet);
-                    alert("Embed snippet copied to clipboard");
-                  } else {
-                    alert("Render queued (prototype)");
-                  }
-                }}>
-                  {mode === "embed" ? "Copy Embed" : "Render Video"}
-                </Button>
+                    toast({ title: "Embed snippet copied" });
+                  }}><Copy className="h-4 w-4" /> Copy Embed Snippet</Button>
+                )}
               </div>
             )}
 
@@ -579,16 +667,17 @@ export function RenderSurahDialog({
               <Container className="!p-3">
                 <div
                   ref={previewWrapRef}
-                  className="relative w-full mx-auto rounded-lg overflow-hidden shadow-xl"
+                  className="relative w-full mx-auto overflow-hidden shadow-xl"
                   style={{
                     aspectRatio: previewAR,
                     maxWidth: previewAR >= 1 ? "100%" : "min(70vh, 100%)",
+                    borderRadius: cfg.borderRadius,
                   }}
                 >
                   {mode === "embed" ? (
                     <iframe
                       title="Embed preview"
-                      srcDoc={buildEmbedPreviewDoc(cfg, verses, { arabicCol, translationCol, transliterationCol, highlightCol })}
+                      srcDoc={buildEmbedPreviewDoc(cfg, verses, { arabicCol, translationCol, transliterationCol, highlightCol }, extraTranslations, extraTransliterations)}
                       className="absolute inset-0 w-full h-full bg-white"
                     />
                   ) : (
@@ -613,16 +702,12 @@ export function RenderSurahDialog({
 
                       {introVisible && (
                         <div className="absolute inset-0 flex items-center justify-center text-center px-6">
-                          <div className="text-white text-2xl sm:text-4xl font-semibold animate-in fade-in duration-500">
-                            {cfg.introText}
-                          </div>
+                          <div className="text-white text-2xl sm:text-4xl font-semibold animate-in fade-in duration-500">{cfg.introText}</div>
                         </div>
                       )}
                       {outroVisible && (
                         <div className="absolute inset-0 flex items-center justify-center text-center px-6">
-                          <div className="text-white text-2xl sm:text-4xl font-semibold animate-in fade-in duration-500">
-                            {cfg.outroText}
-                          </div>
+                          <div className="text-white text-2xl sm:text-4xl font-semibold animate-in fade-in duration-500">{cfg.outroText}</div>
                         </div>
                       )}
 
@@ -634,45 +719,47 @@ export function RenderSurahDialog({
                         const currentWordIdx = tick - before;
                         const activeTranslations = cfg.translations.filter((t) => t !== "None");
                         const activeTransliterations = cfg.transliterations.filter((t) => t !== "None");
+                        const ff = pageFontFamily(cfg.font, cfg.surahId, v.verseNumber);
 
                         return (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
-                            <div dir="rtl"
-                              className={cn("leading-relaxed px-3 py-1 rounded", fontClass(cfg.font))}
-                              style={{ color: arabicCol, fontSize: cfg.arabicSize }}>
-                              {v.words.map((w, i) => (
-                                <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                  {w}{cfg.font === "uthmani_v1" ? "" : " "}
-                                </span>
+                          <div className="absolute inset-0 flex items-center justify-center p-6">
+                            <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
+                              <div dir="rtl"
+                                className={cn("leading-relaxed text-center", fontClass(cfg.font))}
+                                style={{ color: arabicCol, fontSize: cfg.arabicSize, fontFamily: ff }}>
+                                {v.words.map((w, i) => (
+                                  <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
+                                    {w}{cfg.font === "uthmani_v1" ? "" : " "}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {cfg.showWBW && (
+                                <div dir="rtl" className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs"
+                                  style={{ color: transliterationCol }}>
+                                  {v.words.map((w, i) => <span key={i}>{w}</span>)}
+                                </div>
+                              )}
+
+                              {activeTransliterations.map((src) => (
+                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: cfg.transliterationSize }}>
+                                  {extraTransliterations[src]?.[v.verseNumber - 1] ?? ""}
+                                </div>
+                              ))}
+
+                              {activeTranslations.map((src) => (
+                                <div key={src} className="text-center mt-3"
+                                  style={{ color: translationCol, fontSize: cfg.translationSize }}>
+                                  {extraTranslations[src]?.[v.verseNumber - 1] ?? ""}
+                                </div>
                               ))}
                             </div>
-
-                            {cfg.showWBW && (
-                              <div dir="rtl" className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs opacity-90"
-                                style={{ color: transliterationCol }}>
-                                {v.words.map((w, i) => <span key={i}>{w}</span>)}
-                              </div>
-                            )}
-
-                            {activeTransliterations.map((src) => (
-                              <div key={src} className="italic" style={{ color: transliterationCol, fontSize: cfg.transliterationSize }}>
-                                {extraTransliterations[src]?.[v.verseNumber - 1] ?? ""}
-                              </div>
-                            ))}
-
-                            {activeTranslations.map((src) => (
-                              <div key={src} className="max-w-prose animate-in fade-in duration-500"
-                                style={{ color: translationCol, fontSize: cfg.translationSize }}>
-                                {extraTranslations[src]?.[v.verseNumber - 1] ?? ""}
-                              </div>
-                            ))}
                           </div>
                         );
                       })()}
                     </>
                   )}
 
-                  {/* Full-screen button (render only) — bottom right inside preview */}
                   {mode === "render" && (
                     <button
                       type="button"
@@ -686,13 +773,12 @@ export function RenderSurahDialog({
                 </div>
               </Container>
 
-              {/* Embed snippet */}
               {mode === "embed" && (
                 <Container className="!px-4 !py-3">
                   <div className="flex items-center justify-between mb-2">
                     <SectionTitle>Embed Snippet</SectionTitle>
                     <Button size="sm" variant="outline" className="gap-1"
-                      onClick={() => { navigator.clipboard?.writeText(embedSnippet); }}>
+                      onClick={() => { navigator.clipboard?.writeText(embedSnippet); toast({ title: "Copied" }); }}>
                       <Copy className="h-3 w-3" /> Copy
                     </Button>
                   </div>
@@ -751,52 +837,318 @@ function SliderRow({
   );
 }
 
+// ====================== Embed preview (Verse-Card style) ======================
 function buildEmbedPreviewDoc(
   cfg: Config,
   verses: AssembledVerse[],
-  cols: { arabicCol: string; translationCol: string; transliterationCol: string; highlightCol: string }
+  cols: { arabicCol: string; translationCol: string; transliterationCol: string; highlightCol: string },
+  extraTr: Record<string, string[]>,
+  extraTl: Record<string, string[]>,
 ): string {
-  const v = verses[0];
-  const arabic = v ? v.words.join(cfg.font === "uthmani_v1" ? "" : " ") : "";
-  const tr = v?.translation ?? "";
-  const tl = v?.transliteration ?? "";
-  const btn = (label: string) =>
-    `<button style="border:1px solid #ddd;background:#fff;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer">${label}</button>`;
-  const buttons = [
-    cfg.audioPlayback ? btn("▶ Play") : "",
-    cfg.showTafsir    ? btn("Tafsir") : "",
-    cfg.showCopy      ? btn("Copy")   : "",
-    cfg.showShare     ? btn("Share")  : "",
-  ].filter(Boolean).join("");
+  const containerBg = cfg.containerBgKind === "image" && cfg.containerBgUrl
+    ? `center/cover no-repeat url("${cfg.containerBgUrl}")`
+    : cfg.containerBg;
+  const border = `${cfg.borderWidth}px solid ${cfg.borderColor}`;
+
+  const cardFor = (v: AssembledVerse): string => {
+    const arabicWords = v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join(cfg.font === "uthmani_v1" ? "" : " ");
+    const actions: string[] = [];
+    if (cfg.audioPlayback) actions.push(btn("▶ Play"));
+    if (cfg.showTafsir)    actions.push(btn("Tafsir"));
+    if (cfg.showCopy)      actions.push(btn("Copy"));
+    if (cfg.showShare)     actions.push(btn("Share"));
+
+    const trBlocks = cfg.translations.filter((t) => t !== "None").map((src) =>
+      `<div class="tr" style="color:${cols.translationCol};font-size:${cfg.translationSize}px">${escapeHtml(extraTr[src]?.[v.verseNumber - 1] ?? "")}</div>`
+    ).join("");
+    const tlBlocks = cfg.transliterations.filter((t) => t !== "None").map((src) =>
+      `<div class="tl" style="color:${cols.transliterationCol};font-size:${cfg.transliterationSize}px">${escapeHtml(extraTl[src]?.[v.verseNumber - 1] ?? "")}</div>`
+    ).join("");
+    const wbw = cfg.showWBW
+      ? `<div class="wbw" dir="rtl">${v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join("")}</div>`
+      : "";
+
+    return `<div class="card" style="background:${containerBg};border:${border};border-radius:${cfg.borderRadius}px">
+      <div class="head"><span class="badge">${cfg.surahId}:${v.verseNumber}</span><div class="acts">${actions.join("")}</div></div>
+      <div class="ar" dir="rtl" style="color:${cols.arabicCol};font-size:${cfg.arabicSize}px">${arabicWords}</div>
+      ${wbw}
+      ${tlBlocks}
+      ${trBlocks}
+    </div>`;
+  };
 
   return `<!doctype html><html><head><meta charset="utf-8"/>
 <style>
-  body{margin:0;font-family:system-ui,sans-serif;background:#fff;color:#111;padding:16px;box-sizing:border-box;height:100vh;display:flex;flex-direction:column;gap:10px}
-  .ar{direction:rtl;text-align:center;line-height:1.8}
-  .meta{text-align:center;font-size:12px;color:#666}
-  .actions{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:auto}
-  .wbw{direction:rtl;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;font-size:12px;color:#555}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,sans-serif;background:transparent;padding:14px;display:flex;flex-direction:column;gap:14px}
+  .card{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+  .head{display:flex;justify-content:space-between;align-items:center}
+  .badge{font-size:12px;color:#666;background:rgba(0,0,0,.05);padding:2px 8px;border-radius:999px}
+  .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .ar{line-height:2;text-align:right}
+  .wbw{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:#666;justify-content:flex-end}
+  .tl{font-style:italic;text-align:left}
+  .tr{text-align:left;line-height:1.5}
 </style></head><body>
-  <div class="meta">Surah ${cfg.surahId} · Ayah ${cfg.ayahNumber === "all" ? "1" : cfg.ayahNumber}</div>
-  <div class="ar" style="color:${cols.arabicCol};font-size:${cfg.arabicSize}px">${arabic}</div>
-  ${cfg.showWBW && v ? `<div class="wbw">${v.words.map((w) => `<span>${w}</span>`).join("")}</div>` : ""}
-  ${tl ? `<div style="text-align:center;font-style:italic;color:${cols.transliterationCol};font-size:${cfg.transliterationSize}px">${tl}</div>` : ""}
-  ${tr ? `<div style="text-align:center;color:${cols.translationCol};font-size:${cfg.translationSize}px">${tr}</div>` : ""}
-  <div class="actions">${buttons}</div>
+  ${verses.map(cardFor).join("")}
 </body></html>`;
+}
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+function btn(label: string): string {
+  return `<button style="border:1px solid #ddd;background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer">${label}</button>`;
+}
+
+// ====================== Real render (canvas + MediaRecorder → webm download) ======================
+async function renderToWebm(args: {
+  verses: AssembledVerse[];
+  cfg: Config;
+  arabicCol: string;
+  translationCol: string;
+  transliterationCol: string;
+  highlightCol: string;
+  extraTranslations: Record<string, string[]>;
+  extraTransliterations: Record<string, string[]>;
+}): Promise<void> {
+  const { verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations } = args;
+  if (!verses.length) throw new Error("No ayahs in range");
+  const res = RESOLUTIONS[cfg.resolution];
+  const W = res.w, H = res.h;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+
+  // Pre-load background image if any
+  let bgImg: HTMLImageElement | null = null;
+  if (cfg.bgKind === "image" && cfg.bgUrl) {
+    bgImg = await loadImage(cfg.bgUrl);
+  }
+  let containerImg: HTMLImageElement | null = null;
+  if (cfg.containerBgKind === "image" && cfg.containerBgUrl) {
+    containerImg = await loadImage(cfg.containerBgUrl);
+  }
+  let logoImg: HTMLImageElement | null = null;
+  if (cfg.logoUrl) {
+    logoImg = await loadImage(cfg.logoUrl).catch(() => null);
+  }
+
+  const fps = 30;
+  const stream = canvas.captureStream(fps);
+  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+    ? "video/webm;codecs=vp9"
+    : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
+      ? "video/webm;codecs=vp8"
+      : "video/webm";
+  const chunks: BlobPart[] = [];
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  const done = new Promise<Blob>((resolve) => {
+    rec.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+  });
+
+  rec.start();
+
+  const perWord = 0.6; // seconds
+  const totalWords = verses.reduce((a, v) => a + v.words.length, 0);
+  const introSec = cfg.addIntro ? 1.2 : 0;
+  const outroSec = cfg.addOutro ? 1.2 : 0;
+  const totalSec = introSec + totalWords * perWord + outroSec;
+  const totalFrames = Math.ceil(totalSec * fps);
+
+  const drawBg = () => {
+    if (bgImg) {
+      ctx.drawImage(bgImg, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = cfg.bgColor;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillRect(0, 0, W, H);
+  };
+
+  const drawContainerCard = (cardX: number, cardY: number, cardW: number, cardH: number) => {
+    ctx.save();
+    roundRect(ctx, cardX, cardY, cardW, cardH, cfg.borderRadius);
+    if (containerImg) {
+      ctx.clip();
+      ctx.drawImage(containerImg, cardX, cardY, cardW, cardH);
+    } else {
+      ctx.fillStyle = cfg.containerBg;
+      ctx.fill();
+    }
+    ctx.restore();
+    if (cfg.borderWidth > 0) {
+      ctx.save();
+      ctx.strokeStyle = cfg.borderColor;
+      ctx.lineWidth = cfg.borderWidth;
+      roundRect(ctx, cardX, cardY, cardW, cardH, cfg.borderRadius);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  const drawCenteredText = (text: string, x: number, y: number, maxW: number, size: number, color: string, font: string, align: CanvasTextAlign = "center") => {
+    ctx.fillStyle = color;
+    ctx.font = `${size}px ${font}`;
+    ctx.textAlign = align;
+    ctx.textBaseline = "middle";
+    const lines = wrapText(ctx, text, maxW);
+    const lineHeight = size * 1.4;
+    const startY = y - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((ln, i) => ctx.fillText(ln, x, startY + i * lineHeight));
+    return lines.length * lineHeight;
+  };
+
+  const drawFrame = (frameIdx: number) => {
+    const t = frameIdx / fps;
+    drawBg();
+
+    // Branding
+    if (logoImg) {
+      const h = 80; const w = (logoImg.width / logoImg.height) * h;
+      ctx.drawImage(logoImg, W - w - 40, 40, w, h);
+    }
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = "bold 28px sans-serif";
+    ctx.textBaseline = "top";
+    ctx.textAlign = logoImg ? "left" : "right";
+    ctx.fillText("Al-Deen.org", logoImg ? 40 : W - 40, 40);
+
+    if (t < introSec && cfg.addIntro) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 72px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(cfg.introText, W / 2, H / 2);
+      return;
+    }
+    if (t > introSec + totalWords * perWord && cfg.addOutro) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 72px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(cfg.outroText, W / 2, H / 2);
+      return;
+    }
+
+    const tick = Math.min(totalWords - 1, Math.max(0, Math.floor((t - introSec) / perWord)));
+    let vIdx = 0, before = 0;
+    for (let i = 0; i < verses.length; i++) {
+      if (tick < before + verses[i].words.length) { vIdx = i; break; }
+      before += verses[i].words.length;
+    }
+    const v = verses[vIdx];
+    const wordIdx = tick - before;
+
+    // Card
+    const cardW = Math.min(W * 0.85, 1400);
+    const cardH = H * 0.7;
+    const cardX = (W - cardW) / 2;
+    const cardY = (H - cardH) / 2;
+    drawContainerCard(cardX, cardY, cardW, cardH);
+
+    // Arabic line (no per-word highlight in canvas to keep things robust; whole text in arabicCol, current word in highlight)
+    const ff = pageFontFamily(cfg.font, cfg.surahId, v.verseNumber) || "serif";
+    ctx.save();
+    ctx.font = `${cfg.arabicSize * 2}px ${ff}, serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const arabicY = cardY + cardH * 0.35;
+    const fullText = v.words.join(cfg.font === "uthmani_v1" ? "" : " ");
+    ctx.fillStyle = arabicCol;
+    const arLines = wrapText(ctx, fullText, cardW - 80);
+    const arLH = cfg.arabicSize * 2 * 1.4;
+    arLines.forEach((ln, i) => ctx.fillText(ln, W / 2, arabicY - ((arLines.length - 1) * arLH) / 2 + i * arLH));
+    // Highlight current word at top
+    ctx.fillStyle = highlightCol;
+    ctx.font = `${cfg.arabicSize * 2}px ${ff}, serif`;
+    ctx.fillText(v.words[wordIdx] || "", W / 2, cardY + 60);
+    ctx.restore();
+
+    // Translations
+    let yCursor = cardY + cardH * 0.62;
+    const activeTr = cfg.translations.filter((t) => t !== "None");
+    const activeTl = cfg.transliterations.filter((t) => t !== "None");
+    activeTl.forEach((src) => {
+      const text = extraTransliterations[src]?.[v.verseNumber - 1] ?? "";
+      if (!text) return;
+      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, cfg.transliterationSize * 2, transliterationCol, "italic sans-serif");
+      yCursor += used + 16;
+    });
+    activeTr.forEach((src) => {
+      const text = extraTranslations[src]?.[v.verseNumber - 1] ?? "";
+      if (!text) return;
+      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, cfg.translationSize * 2, translationCol, "sans-serif");
+      yCursor += used + 16;
+    });
+  };
+
+  for (let f = 0; f < totalFrames; f++) {
+    drawFrame(f);
+    await new Promise((r) => setTimeout(r, 1000 / fps));
+  }
+  rec.stop();
+  const blob = await done;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.webm`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const test = cur ? cur + " " + w : w;
+    if (ctx.measureText(test).width > maxWidth && cur) { lines.push(cur); cur = w; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
 }
 
 function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "render" | "embed"): Config {
   return {
     resolution: "1080p",
     width: 600,
-    height: 400,
+    height: 480,
     reciter: RECITERS[0],
     surahId,
-    ayahNumber: ayahNumber ?? (mode === "embed" ? 1 : "all"),
+    ayahStart: ayahNumber ?? 1,
+    ayahEnd: ayahNumber ?? 1,
     bgKind: "color",
     bgColor: "#0b1f17",
     bgUrl: "",
+    containerBgKind: "color",
+    containerBg: "#ffffff",
+    containerBgUrl: "",
+    borderColor: "#e5e7eb",
+    borderWidth: 1,
+    borderRadius: 24,
     translations: ["Direct"],
     transliterations: ["None"],
     showWBW: false,
@@ -804,10 +1156,10 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     arabicSize: 40,
     translationSize: 18,
     transliterationSize: 16,
-    arabicColor: "#ffffff",
-    translationColor: "#d8d8d8",
-    transliterationColor: "#cfcfcf",
-    highlightColor: "#34d399",
+    arabicColor: "#111827",
+    translationColor: "#374151",
+    transliterationColor: "#6b7280",
+    highlightColor: "#16a34a",
     autoContrast: true,
     logoUrl: "",
     logoCorner: "tr",
