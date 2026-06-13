@@ -879,16 +879,20 @@ async function renderToWebm(args: {
 
   const fps = 30;
   const stream = canvas.captureStream(fps);
-  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-    ? "video/webm;codecs=vp9"
-    : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
-      ? "video/webm;codecs=vp8"
-      : "video/webm";
+  const wantMp4 = (cfg as any).exportFormat === "mp4";
+  const mp4Mime = "video/mp4;codecs=avc1.42E01E";
+  let mime: string;
+  if (wantMp4 && MediaRecorder.isTypeSupported(mp4Mime)) mime = mp4Mime;
+  else if (wantMp4 && MediaRecorder.isTypeSupported("video/mp4")) mime = "video/mp4";
+  else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) mime = "video/webm;codecs=vp9";
+  else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) mime = "video/webm;codecs=vp8";
+  else mime = "video/webm";
+  const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
   const chunks: BlobPart[] = [];
   const rec = new MediaRecorder(stream, { mimeType: mime });
   rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   const done = new Promise<Blob>((resolve) => {
-    rec.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
   });
 
   rec.start();
