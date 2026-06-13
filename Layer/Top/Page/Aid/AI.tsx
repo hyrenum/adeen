@@ -394,8 +394,8 @@ export default function AI() {
                         </Container>
                       ) : (
                         <Container className="!p-3 max-w-[85%]">
-                          <div className="text-sm whitespace-pre-wrap">
-                            {m.content}
+                          <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:my-2 prose-headings:my-2 prose-ul:my-2 prose-ol:my-2">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content || ""}</ReactMarkdown>
                             {typingTarget && typingTarget.threadId === active?.id && typingTarget.idx === i && (
                               <span className="inline-block w-1.5 h-4 bg-current ml-0.5 align-middle animate-pulse" />
                             )}
