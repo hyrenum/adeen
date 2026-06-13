@@ -846,7 +846,7 @@ function btn(label: string): string {
 // ====================== Real render (canvas + MediaRecorder → webm download) ======================
 async function renderToWebm(args: {
   verses: AssembledVerse[];
-  cfg: Config;
+  cfg: Config & Record<string, any>;
   arabicCol: string;
   translationCol: string;
   transliterationCol: string;
