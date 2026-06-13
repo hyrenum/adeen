@@ -491,6 +491,14 @@ export function RenderSurahDialog({
                 {/* Container styling */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Container</SectionTitle>
+                  {mode === "embed" && (
+                    <>
+                      <Row label="Width"><Input type="number" value={cfg.width}
+                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                      <Row label="Height"><Input type="number" value={cfg.height}
+                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                    </>
+                  )}
                   <Row label="Background">
                     <input type="color" value={cfg.containerBg}
                       onChange={(e) => setCfg((c) => ({ ...c, containerBg: e.target.value, containerBgKind: "color" }))}
@@ -510,90 +518,6 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, borderRadius: v }))} />
                 </Container>
 
-                {/* Font */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Font</SectionTitle>
-                  <Select value={ecfg.font} onValueChange={(v: RenderFont) => setCfg((c) => ({ ...c, font: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FONTS.map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Container>
-
-                {/* WBW */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Word-by-Word</SectionTitle>
-                  <ToggleRow label="Show WBW" value={ecfg.showWBW}
-                    onChange={(v) => setCfg((c) => ({ ...c, showWBW: v }))} />
-                </Container>
-
-                {/* Translations */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Translations</SectionTitle>
-                  <div className="space-y-2">
-                    {ecfg.translations.map((t, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Select value={t} onValueChange={(v) => setCfg((c) => {
-                          const next = [...c.translations]; next[idx] = v; return { ...c, translations: next };
-                        })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {TRANSLATIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {ecfg.translations.length > 1 && (
-                          <Button size="icon" variant="ghost" onClick={() =>
-                            setCfg((c) => ({ ...c, translations: c.translations.filter((_, i) => i !== idx) }))
-                          } aria-label="Remove translation"><X className="h-4 w-4" /></Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button size="sm" variant="outline" className="gap-1"
-                      onClick={() => setCfg((c) => ({ ...c, translations: [...c.translations, "None"] }))}>
-                      <Plus className="h-3 w-3" /> Add Translation
-                    </Button>
-                  </div>
-                </Container>
-
-                {/* Transliterations */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Transliterations</SectionTitle>
-                  <div className="space-y-2">
-                    {ecfg.transliterations.map((t, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Select value={t} onValueChange={(v) => setCfg((c) => {
-                          const next = [...c.transliterations]; next[idx] = v; return { ...c, transliterations: next };
-                        })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {TRANSLITERATIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {ecfg.transliterations.length > 1 && (
-                          <Button size="icon" variant="ghost" onClick={() =>
-                            setCfg((c) => ({ ...c, transliterations: c.transliterations.filter((_, i) => i !== idx) }))
-                          } aria-label="Remove transliteration"><X className="h-4 w-4" /></Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button size="sm" variant="outline" className="gap-1"
-                      onClick={() => setCfg((c) => ({ ...c, transliterations: [...c.transliterations, "None"] }))}>
-                      <Plus className="h-3 w-3" /> Add Transliteration
-                    </Button>
-                  </div>
-                </Container>
-
-                {/* Sizes */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Sizes</SectionTitle>
-                  <SliderRow label="Arabic" value={ecfg.arabicSize} min={16} max={96}
-                    onChange={(v) => setCfg((c) => ({ ...c, arabicSize: v }))} />
-                  <SliderRow label="Translation" value={ecfg.translationSize} min={10} max={48}
-                    onChange={(v) => setCfg((c) => ({ ...c, translationSize: v }))} />
-                  <SliderRow label="Transliteration" value={ecfg.transliterationSize} min={10} max={48}
-                    onChange={(v) => setCfg((c) => ({ ...c, transliterationSize: v }))} />
-                </Container>
 
                 {/* Colors */}
                 <Container className="!px-4 !py-3">
