@@ -368,17 +368,17 @@ export function RenderSurahDialog({
     setRendering(true);
     try {
       await renderToWebm({
-        verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol,
+        verses, cfg: ecfg as unknown as Config, arabicCol, translationCol, transliterationCol, highlightCol,
         extraTranslations, extraTransliterations,
       });
-      toast({ title: "Video downloaded", description: "Saved as .webm to your downloads." });
+      toast({ title: "Video downloaded", description: `Saved as .${cfg.exportFormat} to your downloads.` });
     } catch (err) {
       console.error(err);
       toast({ title: "Render failed", description: String((err as Error)?.message || err), variant: "destructive" });
     } finally {
       setRendering(false);
     }
-  }, [rendering, verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
+  }, [rendering, verses, cfg, ecfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
 
   if (!open) return null;
 
