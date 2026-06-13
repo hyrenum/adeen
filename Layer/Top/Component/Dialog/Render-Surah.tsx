@@ -190,15 +190,15 @@ export function RenderSurahDialog({
   useEffect(() => {
     let cancelled = false;
     setSurahData(null);
-    const primaryTr = cfg.translations.find((t) => t !== "None");
-    const primaryTl = cfg.transliterations.find((t) => t !== "None");
+    const primaryTr = ecfg.translations.find((t) => t !== "None");
+    const primaryTl = ecfg.transliterations.find((t) => t !== "None");
     getSurah(cfg.surahId, {
-      fontType: fontToType(cfg.font),
+      fontType: fontToType(ecfg.font),
       translation: primaryTr,
       transliteration: primaryTl,
     }).then((d) => { if (!cancelled) setSurahData(d); });
     return () => { cancelled = true; };
-  }, [cfg.surahId, cfg.font, cfg.translations, cfg.transliterations]);
+  }, [cfg.surahId, ecfg.font, ecfg.translations, ecfg.transliterations]);
 
   // Sync when caller props change
   useEffect(() => {
@@ -227,9 +227,9 @@ export function RenderSurahDialog({
   const [extraTransliterations, setExtraTransliterations] = useState<Record<string, string[]>>({});
   useEffect(() => {
     let cancelled = false;
-    const sources = cfg.translations.filter((t) => t !== "None");
+    const sources = ecfg.translations.filter((t) => t !== "None");
     Promise.all(sources.map((src) =>
-      getSurah(cfg.surahId, { fontType: fontToType(cfg.font), translation: src })
+      getSurah(cfg.surahId, { fontType: fontToType(ecfg.font), translation: src })
         .then((d) => [src, d.verses.map((v) => v.translation ?? "")] as const)
         .catch(() => [src, [] as string[]] as const)
     )).then((entries) => {
@@ -239,13 +239,13 @@ export function RenderSurahDialog({
       setExtraTranslations(m);
     });
     return () => { cancelled = true; };
-  }, [cfg.translations, cfg.surahId, cfg.font]);
+  }, [ecfg.translations, cfg.surahId, ecfg.font]);
 
   useEffect(() => {
     let cancelled = false;
-    const sources = cfg.transliterations.filter((t) => t !== "None");
+    const sources = ecfg.transliterations.filter((t) => t !== "None");
     Promise.all(sources.map((src) =>
-      getSurah(cfg.surahId, { fontType: fontToType(cfg.font), transliteration: src })
+      getSurah(cfg.surahId, { fontType: fontToType(ecfg.font), transliteration: src })
         .then((d) => [src, d.verses.map((v) => v.transliteration ?? "")] as const)
         .catch(() => [src, [] as string[]] as const)
     )).then((entries) => {
@@ -255,7 +255,7 @@ export function RenderSurahDialog({
       setExtraTransliterations(m);
     });
     return () => { cancelled = true; };
-  }, [cfg.transliterations, cfg.surahId, cfg.font]);
+  }, [ecfg.transliterations, cfg.surahId, ecfg.font]);
 
   const allVerses: AssembledVerse[] = surahData?.verses ?? [];
   const verses = useMemo(
@@ -278,7 +278,7 @@ export function RenderSurahDialog({
     setTick(0);
     const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
     return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, cfg.font, mode]);
+  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode]);
 
   const currentVerseIdx = useMemo(() => {
     let count = 0;
@@ -326,12 +326,12 @@ export function RenderSurahDialog({
     params.set("surah", String(cfg.surahId));
     params.set("from", String(cfg.ayahStart));
     params.set("to", String(cfg.ayahEnd));
-    params.set("font", cfg.font);
-    const trs = cfg.translations.filter((t) => t !== "None");
-    const tls = cfg.transliterations.filter((t) => t !== "None");
+    params.set("font", ecfg.font);
+    const trs = ecfg.translations.filter((t) => t !== "None");
+    const tls = ecfg.transliterations.filter((t) => t !== "None");
     if (trs.length) params.set("translation", trs.join(","));
     if (tls.length) params.set("transliteration", tls.join(","));
-    if (cfg.showWBW) params.set("wbw", "1");
+    if (ecfg.showWBW) params.set("wbw", "1");
     if (cfg.audioPlayback) params.set("audio", "1");
     if (cfg.showTafsir) params.set("tafsir", "1");
     if (cfg.showCopy) params.set("copy", "1");
@@ -491,7 +491,7 @@ export function RenderSurahDialog({
                 {/* Font */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Font</SectionTitle>
-                  <Select value={cfg.font} onValueChange={(v: RenderFont) => setCfg((c) => ({ ...c, font: v }))}>
+                  <Select value={ecfg.font} onValueChange={(v: RenderFont) => setCfg((c) => ({ ...c, font: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {FONTS.map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
@@ -502,7 +502,7 @@ export function RenderSurahDialog({
                 {/* WBW */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Word-by-Word</SectionTitle>
-                  <ToggleRow label="Show WBW" value={cfg.showWBW}
+                  <ToggleRow label="Show WBW" value={ecfg.showWBW}
                     onChange={(v) => setCfg((c) => ({ ...c, showWBW: v }))} />
                 </Container>
 
@@ -510,7 +510,7 @@ export function RenderSurahDialog({
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Translations</SectionTitle>
                   <div className="space-y-2">
-                    {cfg.translations.map((t, idx) => (
+                    {ecfg.translations.map((t, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <Select value={t} onValueChange={(v) => setCfg((c) => {
                           const next = [...c.translations]; next[idx] = v; return { ...c, translations: next };
@@ -520,7 +520,7 @@ export function RenderSurahDialog({
                             {TRANSLATIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        {cfg.translations.length > 1 && (
+                        {ecfg.translations.length > 1 && (
                           <Button size="icon" variant="ghost" onClick={() =>
                             setCfg((c) => ({ ...c, translations: c.translations.filter((_, i) => i !== idx) }))
                           } aria-label="Remove translation"><X className="h-4 w-4" /></Button>
@@ -538,7 +538,7 @@ export function RenderSurahDialog({
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Transliterations</SectionTitle>
                   <div className="space-y-2">
-                    {cfg.transliterations.map((t, idx) => (
+                    {ecfg.transliterations.map((t, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <Select value={t} onValueChange={(v) => setCfg((c) => {
                           const next = [...c.transliterations]; next[idx] = v; return { ...c, transliterations: next };
@@ -548,7 +548,7 @@ export function RenderSurahDialog({
                             {TRANSLITERATIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        {cfg.transliterations.length > 1 && (
+                        {ecfg.transliterations.length > 1 && (
                           <Button size="icon" variant="ghost" onClick={() =>
                             setCfg((c) => ({ ...c, transliterations: c.transliterations.filter((_, i) => i !== idx) }))
                           } aria-label="Remove transliteration"><X className="h-4 w-4" /></Button>
@@ -565,11 +565,11 @@ export function RenderSurahDialog({
                 {/* Sizes */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Sizes</SectionTitle>
-                  <SliderRow label="Arabic" value={cfg.arabicSize} min={16} max={96}
+                  <SliderRow label="Arabic" value={ecfg.arabicSize} min={16} max={96}
                     onChange={(v) => setCfg((c) => ({ ...c, arabicSize: v }))} />
-                  <SliderRow label="Translation" value={cfg.translationSize} min={10} max={48}
+                  <SliderRow label="Translation" value={ecfg.translationSize} min={10} max={48}
                     onChange={(v) => setCfg((c) => ({ ...c, translationSize: v }))} />
-                  <SliderRow label="Transliteration" value={cfg.transliterationSize} min={10} max={48}
+                  <SliderRow label="Transliteration" value={ecfg.transliterationSize} min={10} max={48}
                     onChange={(v) => setCfg((c) => ({ ...c, transliterationSize: v }))} />
                 </Container>
 
@@ -711,24 +711,24 @@ export function RenderSurahDialog({
                         let before = 0;
                         for (let i = 0; i < currentVerseIdx; i++) before += verses[i].words.length;
                         const currentWordIdx = tick - before;
-                        const activeTranslations = cfg.translations.filter((t) => t !== "None");
-                        const activeTransliterations = cfg.transliterations.filter((t) => t !== "None");
-                        const ff = pageFontFamily(cfg.font, cfg.surahId, v.verseNumber);
+                        const activeTranslations = ecfg.translations.filter((t) => t !== "None");
+                        const activeTransliterations = ecfg.transliterations.filter((t) => t !== "None");
+                        const ff = pageFontFamily(ecfg.font, cfg.surahId, v.verseNumber);
 
                         return (
                           <div className="absolute inset-0 flex items-center justify-center p-6">
                             <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
                               <div dir="rtl"
-                                className={cn("leading-relaxed text-center", fontClass(cfg.font))}
-                                style={{ color: arabicCol, fontSize: cfg.arabicSize, fontFamily: ff }}>
+                                className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
+                                style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
                                 {v.words.map((w, i) => (
                                   <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                    {w}{cfg.font === "uthmani_v1" ? "" : " "}
+                                    {w}{ecfg.font === "uthmani_v1" ? "" : " "}
                                   </span>
                                 ))}
                               </div>
 
-                              {cfg.showWBW && (
+                              {ecfg.showWBW && (
                                 <div dir="rtl" className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs"
                                   style={{ color: transliterationCol }}>
                                   {v.words.map((w, i) => <span key={i}>{w}</span>)}
@@ -736,14 +736,14 @@ export function RenderSurahDialog({
                               )}
 
                               {activeTransliterations.map((src) => (
-                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: cfg.transliterationSize }}>
+                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
                                   {extraTransliterations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
 
                               {activeTranslations.map((src) => (
                                 <div key={src} className="text-center mt-3"
-                                  style={{ color: translationCol, fontSize: cfg.translationSize }}>
+                                  style={{ color: translationCol, fontSize: ecfg.translationSize }}>
                                   {extraTranslations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
@@ -845,26 +845,26 @@ function buildEmbedPreviewDoc(
   const border = `${cfg.borderWidth}px solid ${cfg.borderColor}`;
 
   const cardFor = (v: AssembledVerse): string => {
-    const arabicWords = v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join(cfg.font === "uthmani_v1" ? "" : " ");
+    const arabicWords = v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join(ecfg.font === "uthmani_v1" ? "" : " ");
     const actions: string[] = [];
     if (cfg.audioPlayback) actions.push(btn("▶ Play"));
     if (cfg.showTafsir)    actions.push(btn("Tafsir"));
     if (cfg.showCopy)      actions.push(btn("Copy"));
     if (cfg.showShare)     actions.push(btn("Share"));
 
-    const trBlocks = cfg.translations.filter((t) => t !== "None").map((src) =>
-      `<div class="tr" style="color:${cols.translationCol};font-size:${cfg.translationSize}px">${escapeHtml(extraTr[src]?.[v.verseNumber - 1] ?? "")}</div>`
+    const trBlocks = ecfg.translations.filter((t) => t !== "None").map((src) =>
+      `<div class="tr" style="color:${cols.translationCol};font-size:${ecfg.translationSize}px">${escapeHtml(extraTr[src]?.[v.verseNumber - 1] ?? "")}</div>`
     ).join("");
-    const tlBlocks = cfg.transliterations.filter((t) => t !== "None").map((src) =>
-      `<div class="tl" style="color:${cols.transliterationCol};font-size:${cfg.transliterationSize}px">${escapeHtml(extraTl[src]?.[v.verseNumber - 1] ?? "")}</div>`
+    const tlBlocks = ecfg.transliterations.filter((t) => t !== "None").map((src) =>
+      `<div class="tl" style="color:${cols.transliterationCol};font-size:${ecfg.transliterationSize}px">${escapeHtml(extraTl[src]?.[v.verseNumber - 1] ?? "")}</div>`
     ).join("");
-    const wbw = cfg.showWBW
+    const wbw = ecfg.showWBW
       ? `<div class="wbw" dir="rtl">${v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join("")}</div>`
       : "";
 
     return `<div class="card" style="background:${containerBg};border:${border};border-radius:${cfg.borderRadius}px">
       <div class="head"><span class="badge">${cfg.surahId}:${v.verseNumber}</span><div class="acts">${actions.join("")}</div></div>
-      <div class="ar" dir="rtl" style="color:${cols.arabicCol};font-size:${cfg.arabicSize}px">${arabicWords}</div>
+      <div class="ar" dir="rtl" style="color:${cols.arabicCol};font-size:${ecfg.arabicSize}px">${arabicWords}</div>
       ${wbw}
       ${tlBlocks}
       ${trBlocks}
@@ -1044,37 +1044,37 @@ async function renderToWebm(args: {
     drawContainerCard(cardX, cardY, cardW, cardH);
 
     // Arabic line (no per-word highlight in canvas to keep things robust; whole text in arabicCol, current word in highlight)
-    const ff = pageFontFamily(cfg.font, cfg.surahId, v.verseNumber) || "serif";
+    const ff = pageFontFamily(ecfg.font, cfg.surahId, v.verseNumber) || "serif";
     ctx.save();
-    ctx.font = `${cfg.arabicSize * 2}px ${ff}, serif`;
+    ctx.font = `${ecfg.arabicSize * 2}px ${ff}, serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const arabicY = cardY + cardH * 0.35;
-    const fullText = v.words.join(cfg.font === "uthmani_v1" ? "" : " ");
+    const fullText = v.words.join(ecfg.font === "uthmani_v1" ? "" : " ");
     ctx.fillStyle = arabicCol;
     const arLines = wrapText(ctx, fullText, cardW - 80);
-    const arLH = cfg.arabicSize * 2 * 1.4;
+    const arLH = ecfg.arabicSize * 2 * 1.4;
     arLines.forEach((ln, i) => ctx.fillText(ln, W / 2, arabicY - ((arLines.length - 1) * arLH) / 2 + i * arLH));
     // Highlight current word at top
     ctx.fillStyle = highlightCol;
-    ctx.font = `${cfg.arabicSize * 2}px ${ff}, serif`;
+    ctx.font = `${ecfg.arabicSize * 2}px ${ff}, serif`;
     ctx.fillText(v.words[wordIdx] || "", W / 2, cardY + 60);
     ctx.restore();
 
     // Translations
     let yCursor = cardY + cardH * 0.62;
-    const activeTr = cfg.translations.filter((t) => t !== "None");
-    const activeTl = cfg.transliterations.filter((t) => t !== "None");
+    const activeTr = ecfg.translations.filter((t) => t !== "None");
+    const activeTl = ecfg.transliterations.filter((t) => t !== "None");
     activeTl.forEach((src) => {
       const text = extraTransliterations[src]?.[v.verseNumber - 1] ?? "";
       if (!text) return;
-      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, cfg.transliterationSize * 2, transliterationCol, "italic sans-serif");
+      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, ecfg.transliterationSize * 2, transliterationCol, "italic sans-serif");
       yCursor += used + 16;
     });
     activeTr.forEach((src) => {
       const text = extraTranslations[src]?.[v.verseNumber - 1] ?? "";
       if (!text) return;
-      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, cfg.translationSize * 2, translationCol, "sans-serif");
+      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, ecfg.translationSize * 2, translationCol, "sans-serif");
       yCursor += used + 16;
     });
   };
