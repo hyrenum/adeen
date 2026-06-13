@@ -24,6 +24,7 @@ import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 import { cn } from "@/Middle/Library/utils";
 import { Maximize2, Minimize2, Plus, X, Copy, Download, Loader2 } from "lucide-react";
 import { toast } from "@/Middle/Hook/Use-Toast";
+import { useApp } from "@/Middle/Context/App";
 
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
@@ -33,6 +34,7 @@ interface Config {
   resolution: "1080p" | "720p" | "vertical";
   width: number;
   height: number;
+  exportFormat: "webm" | "mp4";
 
   reciter: string;
   surahId: number;
@@ -50,15 +52,6 @@ interface Config {
   borderColor: string;
   borderWidth: number;
   borderRadius: number;
-
-  translations: string[];
-  transliterations: string[];
-  showWBW: boolean;
-
-  font: RenderFont;
-  arabicSize: number;
-  translationSize: number;
-  transliterationSize: number;
 
   arabicColor: string;
   translationColor: string;
@@ -79,6 +72,7 @@ interface Config {
   showTafsir: boolean;
   showCopy: boolean;
   showShare: boolean;
+  hoverTooltip: boolean;
 }
 
 const RECITERS = ["Mishary Rashid Alafasy", "Sa'd al-Ghamdi", "Maher al-Muaiqly"];
@@ -187,24 +181,44 @@ export function RenderSurahDialog({
 }: Props) {
   useBackHandler(open, () => onOpenChange(false));
 
+  const app = useApp();
   const [cfg, setCfg] = useState<Config>(() => makeDefaults(surahId, ayahNumber, mode));
   const [fullscreen, setFullscreen] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
+
+  // Derived from user Settings — not exposed in this dialog.
+  const ecfg = useMemo(() => {
+    const trs = (app.selectedTranslations && app.selectedTranslations.length > 0)
+      ? app.selectedTranslations.map((t) => t === "translation" ? "Direct" : t)
+      : ["None"];
+    const tls = app.selectedAyahTransliterator && app.selectedAyahTransliterator !== "None"
+      ? [app.selectedAyahTransliterator] : ["None"];
+    return {
+      ...cfg,
+      font: app.quranFont as RenderFont,
+      translations: trs,
+      transliterations: tls,
+      showWBW: true, // honor WBW transliteration/translation visibility
+      arabicSize: 16 + (app.fontSize ?? 3) * 6,
+      translationSize: 12 + (app.translationFontSize ?? 3) * 3,
+      transliterationSize: 12 + (app.transliterationSize ?? 3) * 3,
+    };
+  }, [cfg, app.quranFont, app.selectedTranslations, app.selectedAyahTransliterator, app.fontSize, app.translationFontSize, app.transliterationSize]);
 
   // Load surah data first (so we can clamp range to count)
   const [surahData, setSurahData] = useState<AssembledSurah | null>(null);
   useEffect(() => {
     let cancelled = false;
     setSurahData(null);
-    const primaryTr = cfg.translations.find((t) => t !== "None");
-    const primaryTl = cfg.transliterations.find((t) => t !== "None");
+    const primaryTr = ecfg.translations.find((t) => t !== "None");
+    const primaryTl = ecfg.transliterations.find((t) => t !== "None");
     getSurah(cfg.surahId, {
-      fontType: fontToType(cfg.font),
+      fontType: fontToType(ecfg.font),
       translation: primaryTr,
       transliteration: primaryTl,
     }).then((d) => { if (!cancelled) setSurahData(d); });
     return () => { cancelled = true; };
-  }, [cfg.surahId, cfg.font, cfg.translations, cfg.transliterations]);
+  }, [cfg.surahId, ecfg.font, ecfg.translations, ecfg.transliterations]);
 
   // Sync when caller props change
   useEffect(() => {
@@ -233,9 +247,9 @@ export function RenderSurahDialog({
   const [extraTransliterations, setExtraTransliterations] = useState<Record<string, string[]>>({});
   useEffect(() => {
     let cancelled = false;
-    const sources = cfg.translations.filter((t) => t !== "None");
+    const sources = ecfg.translations.filter((t) => t !== "None");
     Promise.all(sources.map((src) =>
-      getSurah(cfg.surahId, { fontType: fontToType(cfg.font), translation: src })
+      getSurah(cfg.surahId, { fontType: fontToType(ecfg.font), translation: src })
         .then((d) => [src, d.verses.map((v) => v.translation ?? "")] as const)
         .catch(() => [src, [] as string[]] as const)
     )).then((entries) => {
@@ -245,13 +259,13 @@ export function RenderSurahDialog({
       setExtraTranslations(m);
     });
     return () => { cancelled = true; };
-  }, [cfg.translations, cfg.surahId, cfg.font]);
+  }, [ecfg.translations, cfg.surahId, ecfg.font]);
 
   useEffect(() => {
     let cancelled = false;
-    const sources = cfg.transliterations.filter((t) => t !== "None");
+    const sources = ecfg.transliterations.filter((t) => t !== "None");
     Promise.all(sources.map((src) =>
-      getSurah(cfg.surahId, { fontType: fontToType(cfg.font), transliteration: src })
+      getSurah(cfg.surahId, { fontType: fontToType(ecfg.font), transliteration: src })
         .then((d) => [src, d.verses.map((v) => v.transliteration ?? "")] as const)
         .catch(() => [src, [] as string[]] as const)
     )).then((entries) => {
@@ -261,7 +275,7 @@ export function RenderSurahDialog({
       setExtraTransliterations(m);
     });
     return () => { cancelled = true; };
-  }, [cfg.transliterations, cfg.surahId, cfg.font]);
+  }, [ecfg.transliterations, cfg.surahId, ecfg.font]);
 
   const allVerses: AssembledVerse[] = surahData?.verses ?? [];
   const verses = useMemo(
@@ -284,7 +298,7 @@ export function RenderSurahDialog({
     setTick(0);
     const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
     return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, cfg.font, mode]);
+  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode]);
 
   const currentVerseIdx = useMemo(() => {
     let count = 0;
@@ -332,12 +346,12 @@ export function RenderSurahDialog({
     params.set("surah", String(cfg.surahId));
     params.set("from", String(cfg.ayahStart));
     params.set("to", String(cfg.ayahEnd));
-    params.set("font", cfg.font);
-    const trs = cfg.translations.filter((t) => t !== "None");
-    const tls = cfg.transliterations.filter((t) => t !== "None");
+    params.set("font", ecfg.font);
+    const trs = ecfg.translations.filter((t) => t !== "None");
+    const tls = ecfg.transliterations.filter((t) => t !== "None");
     if (trs.length) params.set("translation", trs.join(","));
     if (tls.length) params.set("transliteration", tls.join(","));
-    if (cfg.showWBW) params.set("wbw", "1");
+    if (ecfg.showWBW) params.set("wbw", "1");
     if (cfg.audioPlayback) params.set("audio", "1");
     if (cfg.showTafsir) params.set("tafsir", "1");
     if (cfg.showCopy) params.set("copy", "1");
@@ -354,17 +368,17 @@ export function RenderSurahDialog({
     setRendering(true);
     try {
       await renderToWebm({
-        verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol,
+        verses, cfg: ecfg as unknown as Config, arabicCol, translationCol, transliterationCol, highlightCol,
         extraTranslations, extraTransliterations,
       });
-      toast({ title: "Video downloaded", description: "Saved as .webm to your downloads." });
+      toast({ title: "Video downloaded", description: `Saved as .${cfg.exportFormat} to your downloads.` });
     } catch (err) {
       console.error(err);
       toast({ title: "Render failed", description: String((err as Error)?.message || err), variant: "destructive" });
     } finally {
       setRendering(false);
     }
-  }, [rendering, verses, cfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
+  }, [rendering, verses, cfg, ecfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
 
   if (!open) return null;
 
@@ -380,7 +394,7 @@ export function RenderSurahDialog({
   return (
     <div className="fixed inset-0 z-40 bg-background">
       <ScrollArea className="h-full">
-        <div className={cn("p-3 sm:p-4 pt-24 sm:pt-28 mx-auto w-full", fullscreen ? "max-w-none" : "max-w-7xl")}>
+        <div className={cn("p-3 sm:p-4 pt-16 sm:pt-20 mx-auto w-full", fullscreen ? "max-w-none" : "max-w-7xl")}>
           <div className={cn(
             "grid gap-3",
             fullscreen ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[360px_1fr]"
@@ -391,34 +405,36 @@ export function RenderSurahDialog({
                 {/* Output */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Output</SectionTitle>
-                  {mode === "render" ? (
-                    <Row label="Resolution">
-                      <Select value={cfg.resolution} onValueChange={(v: Config["resolution"]) => setCfg((c) => ({ ...c, resolution: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(RESOLUTIONS).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Row>
-                  ) : (
-                    <>
-                      <Row label="Width"><Input type="number" value={cfg.width}
-                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                      <Row label="Height"><Input type="number" value={cfg.height}
-                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                    </>
-                  )}
                   {mode === "render" && (
-                    <Row label="Reciter">
-                      <Select value={cfg.reciter} onValueChange={(v) => setCfg((c) => ({ ...c, reciter: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {RECITERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </Row>
+                    <>
+                      <Row label="Resolution">
+                        <Select value={cfg.resolution} onValueChange={(v: Config["resolution"]) => setCfg((c) => ({ ...c, resolution: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(RESOLUTIONS).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                      <Row label="Format">
+                        <Select value={cfg.exportFormat} onValueChange={(v: Config["exportFormat"]) => setCfg((c) => ({ ...c, exportFormat: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="webm">WebM (VP9)</SelectItem>
+                            <SelectItem value="mp4">MP4</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                      <Row label="Reciter">
+                        <Select value={cfg.reciter} onValueChange={(v) => setCfg((c) => ({ ...c, reciter: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {RECITERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                    </>
                   )}
                   <Row label="Surah">
                     <Select value={String(cfg.surahId)} onValueChange={(v) => setCfg((c) => ({ ...c, surahId: parseInt(v), ayahStart: 1, ayahEnd: 1 }))}>
@@ -475,6 +491,14 @@ export function RenderSurahDialog({
                 {/* Container styling */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Container</SectionTitle>
+                  {mode === "embed" && (
+                    <>
+                      <Row label="Width"><Input type="number" value={cfg.width}
+                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                      <Row label="Height"><Input type="number" value={cfg.height}
+                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                    </>
+                  )}
                   <Row label="Background">
                     <input type="color" value={cfg.containerBg}
                       onChange={(e) => setCfg((c) => ({ ...c, containerBg: e.target.value, containerBgKind: "color" }))}
@@ -494,90 +518,6 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, borderRadius: v }))} />
                 </Container>
 
-                {/* Font */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Font</SectionTitle>
-                  <Select value={cfg.font} onValueChange={(v: RenderFont) => setCfg((c) => ({ ...c, font: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FONTS.map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Container>
-
-                {/* WBW */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Word-by-Word</SectionTitle>
-                  <ToggleRow label="Show WBW" value={cfg.showWBW}
-                    onChange={(v) => setCfg((c) => ({ ...c, showWBW: v }))} />
-                </Container>
-
-                {/* Translations */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Translations</SectionTitle>
-                  <div className="space-y-2">
-                    {cfg.translations.map((t, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Select value={t} onValueChange={(v) => setCfg((c) => {
-                          const next = [...c.translations]; next[idx] = v; return { ...c, translations: next };
-                        })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {TRANSLATIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {cfg.translations.length > 1 && (
-                          <Button size="icon" variant="ghost" onClick={() =>
-                            setCfg((c) => ({ ...c, translations: c.translations.filter((_, i) => i !== idx) }))
-                          } aria-label="Remove translation"><X className="h-4 w-4" /></Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button size="sm" variant="outline" className="gap-1"
-                      onClick={() => setCfg((c) => ({ ...c, translations: [...c.translations, "None"] }))}>
-                      <Plus className="h-3 w-3" /> Add Translation
-                    </Button>
-                  </div>
-                </Container>
-
-                {/* Transliterations */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Transliterations</SectionTitle>
-                  <div className="space-y-2">
-                    {cfg.transliterations.map((t, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Select value={t} onValueChange={(v) => setCfg((c) => {
-                          const next = [...c.transliterations]; next[idx] = v; return { ...c, transliterations: next };
-                        })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {TRANSLITERATIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {cfg.transliterations.length > 1 && (
-                          <Button size="icon" variant="ghost" onClick={() =>
-                            setCfg((c) => ({ ...c, transliterations: c.transliterations.filter((_, i) => i !== idx) }))
-                          } aria-label="Remove transliteration"><X className="h-4 w-4" /></Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button size="sm" variant="outline" className="gap-1"
-                      onClick={() => setCfg((c) => ({ ...c, transliterations: [...c.transliterations, "None"] }))}>
-                      <Plus className="h-3 w-3" /> Add Transliteration
-                    </Button>
-                  </div>
-                </Container>
-
-                {/* Sizes */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Sizes</SectionTitle>
-                  <SliderRow label="Arabic" value={cfg.arabicSize} min={16} max={96}
-                    onChange={(v) => setCfg((c) => ({ ...c, arabicSize: v }))} />
-                  <SliderRow label="Translation" value={cfg.translationSize} min={10} max={48}
-                    onChange={(v) => setCfg((c) => ({ ...c, translationSize: v }))} />
-                  <SliderRow label="Transliteration" value={cfg.transliterationSize} min={10} max={48}
-                    onChange={(v) => setCfg((c) => ({ ...c, transliterationSize: v }))} />
-                </Container>
 
                 {/* Colors */}
                 <Container className="!px-4 !py-3">
@@ -645,6 +585,8 @@ export function RenderSurahDialog({
                       onChange={(v) => setCfg((c) => ({ ...c, showCopy: v }))} />
                     <ToggleRow label="Show Share Button" value={cfg.showShare}
                       onChange={(v) => setCfg((c) => ({ ...c, showShare: v }))} />
+                    <ToggleRow label="Hover Tooltip" value={cfg.hoverTooltip}
+                      onChange={(v) => setCfg((c) => ({ ...c, hoverTooltip: v }))} />
                   </Container>
                 )}
 
@@ -664,7 +606,7 @@ export function RenderSurahDialog({
 
             {/* ============ RIGHT: Preview ============ */}
             <div className="space-y-3">
-              <Container className="!p-3">
+              <div className="w-full">
                 <div
                   ref={previewWrapRef}
                   className="relative w-full mx-auto overflow-hidden shadow-xl"
@@ -677,7 +619,7 @@ export function RenderSurahDialog({
                   {mode === "embed" ? (
                     <iframe
                       title="Embed preview"
-                      srcDoc={buildEmbedPreviewDoc(cfg, verses, { arabicCol, translationCol, transliterationCol, highlightCol }, extraTranslations, extraTransliterations)}
+                      srcDoc={buildEmbedPreviewDoc(ecfg as unknown as Config, verses, { arabicCol, translationCol, transliterationCol, highlightCol }, extraTranslations, extraTransliterations)}
                       className="absolute inset-0 w-full h-full bg-white"
                     />
                   ) : (
@@ -717,24 +659,24 @@ export function RenderSurahDialog({
                         let before = 0;
                         for (let i = 0; i < currentVerseIdx; i++) before += verses[i].words.length;
                         const currentWordIdx = tick - before;
-                        const activeTranslations = cfg.translations.filter((t) => t !== "None");
-                        const activeTransliterations = cfg.transliterations.filter((t) => t !== "None");
-                        const ff = pageFontFamily(cfg.font, cfg.surahId, v.verseNumber);
+                        const activeTranslations = ecfg.translations.filter((t) => t !== "None");
+                        const activeTransliterations = ecfg.transliterations.filter((t) => t !== "None");
+                        const ff = pageFontFamily(ecfg.font, cfg.surahId, v.verseNumber);
 
                         return (
                           <div className="absolute inset-0 flex items-center justify-center p-6">
                             <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
                               <div dir="rtl"
-                                className={cn("leading-relaxed text-center", fontClass(cfg.font))}
-                                style={{ color: arabicCol, fontSize: cfg.arabicSize, fontFamily: ff }}>
+                                className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
+                                style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
                                 {v.words.map((w, i) => (
                                   <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                    {w}{cfg.font === "uthmani_v1" ? "" : " "}
+                                    {w}{ecfg.font === "uthmani_v1" ? "" : " "}
                                   </span>
                                 ))}
                               </div>
 
-                              {cfg.showWBW && (
+                              {ecfg.showWBW && (
                                 <div dir="rtl" className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs"
                                   style={{ color: transliterationCol }}>
                                   {v.words.map((w, i) => <span key={i}>{w}</span>)}
@@ -742,14 +684,14 @@ export function RenderSurahDialog({
                               )}
 
                               {activeTransliterations.map((src) => (
-                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: cfg.transliterationSize }}>
+                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
                                   {extraTransliterations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
 
                               {activeTranslations.map((src) => (
                                 <div key={src} className="text-center mt-3"
-                                  style={{ color: translationCol, fontSize: cfg.translationSize }}>
+                                  style={{ color: translationCol, fontSize: ecfg.translationSize }}>
                                   {extraTranslations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
@@ -771,7 +713,8 @@ export function RenderSurahDialog({
                     </button>
                   )}
                 </div>
-              </Container>
+              </div>
+
 
               {mode === "embed" && (
                 <Container className="!px-4 !py-3">
@@ -839,7 +782,7 @@ function SliderRow({
 
 // ====================== Embed preview (Verse-Card style) ======================
 function buildEmbedPreviewDoc(
-  cfg: Config,
+  cfg: Config & Record<string, any>,
   verses: AssembledVerse[],
   cols: { arabicCol: string; translationCol: string; transliterationCol: string; highlightCol: string },
   extraTr: Record<string, string[]>,
@@ -903,7 +846,7 @@ function btn(label: string): string {
 // ====================== Real render (canvas + MediaRecorder → webm download) ======================
 async function renderToWebm(args: {
   verses: AssembledVerse[];
-  cfg: Config;
+  cfg: Config & Record<string, any>;
   arabicCol: string;
   translationCol: string;
   transliterationCol: string;
@@ -936,16 +879,20 @@ async function renderToWebm(args: {
 
   const fps = 30;
   const stream = canvas.captureStream(fps);
-  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-    ? "video/webm;codecs=vp9"
-    : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
-      ? "video/webm;codecs=vp8"
-      : "video/webm";
+  const wantMp4 = (cfg as any).exportFormat === "mp4";
+  const mp4Mime = "video/mp4;codecs=avc1.42E01E";
+  let mime: string;
+  if (wantMp4 && MediaRecorder.isTypeSupported(mp4Mime)) mime = mp4Mime;
+  else if (wantMp4 && MediaRecorder.isTypeSupported("video/mp4")) mime = "video/mp4";
+  else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) mime = "video/webm;codecs=vp9";
+  else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) mime = "video/webm;codecs=vp8";
+  else mime = "video/webm";
+  const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
   const chunks: BlobPart[] = [];
   const rec = new MediaRecorder(stream, { mimeType: mime });
   rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   const done = new Promise<Blob>((resolve) => {
-    rec.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
   });
 
   rec.start();
@@ -1094,7 +1041,7 @@ async function renderToWebm(args: {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.webm`;
+  a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${ext}`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
@@ -1136,6 +1083,7 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     resolution: "1080p",
     width: 600,
     height: 480,
+    exportFormat: "webm",
     reciter: RECITERS[0],
     surahId,
     ayahStart: ayahNumber ?? 1,
@@ -1149,13 +1097,6 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     borderColor: "#e5e7eb",
     borderWidth: 1,
     borderRadius: 24,
-    translations: ["Direct"],
-    transliterations: ["None"],
-    showWBW: false,
-    font: "uthmani",
-    arabicSize: 40,
-    translationSize: 18,
-    transliterationSize: 16,
     arabicColor: "#111827",
     translationColor: "#374151",
     transliterationColor: "#6b7280",
@@ -1171,5 +1112,6 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     showTafsir: true,
     showCopy: true,
     showShare: false,
+    hoverTooltip: true,
   };
 }

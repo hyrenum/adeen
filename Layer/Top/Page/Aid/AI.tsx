@@ -25,6 +25,10 @@ import {
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { supabase } from "@/Bottom/Integration/Supabase/client";
 import { cn } from "@/Middle/Library/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const MAX_INPUT_CHARS = 4000;
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Thread = { id: string; title: string; messages: Msg[]; updatedAt: number };
@@ -244,20 +248,31 @@ export default function AI() {
 
   const composer = (
     <div className="w-full flex gap-2 items-end">
-      <Textarea
-        ref={taRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            send();
-          }
-        }}
-        placeholder="Ask anything..."
-        rows={1}
-        className="flex-1 resize-none min-h-[44px] max-h-32 rounded-xl border border-border bg-transparent px-3 py-2"
-      />
+      <div className="flex-1 flex flex-col">
+        <Textarea
+          ref={taRef}
+          value={input}
+          onChange={(e) => {
+            const v = e.target.value.slice(0, MAX_INPUT_CHARS);
+            setInput(v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          placeholder="Ask anything..."
+          rows={1}
+          maxLength={MAX_INPUT_CHARS}
+          className="w-full resize-none min-h-[44px] max-h-32 overflow-y-auto rounded-full border border-border/30 bg-card text-foreground px-4 py-2.5"
+        />
+        {input.length > MAX_INPUT_CHARS * 0.8 && (
+          <span className="text-[10px] text-muted-foreground self-end mt-1 mr-2">
+            {input.length}/{MAX_INPUT_CHARS}
+          </span>
+        )}
+      </div>
       <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-11 w-11 shrink-0">
         <Send className="h-4 w-4" />
       </Button>
@@ -379,8 +394,8 @@ export default function AI() {
                         </Container>
                       ) : (
                         <Container className="!p-3 max-w-[85%]">
-                          <div className="text-sm whitespace-pre-wrap">
-                            {m.content}
+                          <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:my-2 prose-headings:my-2 prose-ul:my-2 prose-ol:my-2">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content || ""}</ReactMarkdown>
                             {typingTarget && typingTarget.threadId === active?.id && typingTarget.idx === i && (
                               <span className="inline-block w-1.5 h-4 bg-current ml-0.5 align-middle animate-pulse" />
                             )}
