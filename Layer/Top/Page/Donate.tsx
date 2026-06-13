@@ -1,64 +1,175 @@
+import { useMemo, useState } from "react";
 import { Layout } from "@/Top/Component/Layout/Index";
 import { Container } from "@/Top/Component/UI/Container";
 import { Button } from "@/Top/Component/UI/Button";
-import { Heart, Coffee, Sparkles, ExternalLink } from "lucide-react";
+import { Input } from "@/Top/Component/UI/Input";
+import { SlidingPill } from "@/Top/Component/UI/Sliding-Pill";
+import { Dropdown } from "@/Top/Component/UI/Dropdown";
+import { Heart, HandHeart, Sprout, Repeat, Loader2 } from "lucide-react";
+import { toast } from "@/Middle/Hook/Use-Toast";
 
-const TIERS = [
-  { id: "tea",      icon: Coffee,    title: "A Cup Of Tea",  amount: "$3",  desc: "Small Token Of Support" },
-  { id: "supporter", icon: Heart,     title: "Supporter",     amount: "$10", desc: "Help Cover Hosting Costs" },
-  { id: "patron",   icon: Sparkles,  title: "Patron",        amount: "$25", desc: "Fuel New Features" },
+type Frequency = "one_time" | "daily" | "weekly" | "monthly" | "yearly";
+type DonationType = "general" | "zakat" | "sadaqah" | "sadaqah_jariya";
+
+const CURRENCIES = [
+  { value: "USD", label: "USD $" }, { value: "EUR", label: "EUR €" },
+  { value: "GBP", label: "GBP £" }, { value: "PKR", label: "PKR ₨" },
+  { value: "INR", label: "INR ₹" }, { value: "SAR", label: "SAR ﷼" },
+  { value: "AED", label: "AED د.إ" }, { value: "MYR", label: "MYR RM" },
+  { value: "IDR", label: "IDR Rp" }, { value: "TRY", label: "TRY ₺" },
 ];
 
-const DONATE_URL = "https://ko-fi.com";
+const DONATION_TYPES: { id: DonationType; label: string; icon: React.ReactNode; desc: string }[] = [
+  { id: "general", label: "General", icon: <Heart className="h-4 w-4" />, desc: "Support our work and ongoing costs." },
+  { id: "zakat", label: "Zakat", icon: <HandHeart className="h-4 w-4" />, desc: "Annual obligatory charity for eligible recipients." },
+  { id: "sadaqah", label: "Sadaqah", icon: <HandHeart className="h-4 w-4" />, desc: "Voluntary charity, given freely." },
+  { id: "sadaqah_jariya", label: "Sadaqah Jariya", icon: <Sprout className="h-4 w-4" />, desc: "Ongoing charity with lasting reward." },
+];
+
+const PRESETS = [10, 25, 50, 100, 250];
 
 export default function Donate() {
+  const [mode, setMode] = useState<"once" | "recurring">("once");
+  const [frequency, setFrequency] = useState<Frequency>("monthly");
+  const [type, setType] = useState<DonationType>("general");
+  const [currency, setCurrency] = useState<string>("USD");
+  const [amount, setAmount] = useState<string>("25");
+  const [loading, setLoading] = useState(false);
+
+  const effectiveFreq: Frequency = mode === "once" ? "one_time" : frequency;
+  const currencySymbol = useMemo(
+    () => CURRENCIES.find((c) => c.value === currency)?.label.split(" ")[1] ?? "",
+    [currency],
+  );
+
+  const donate = async () => {
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) {
+      toast({ title: "Enter an amount", description: "Please enter a valid donation amount.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    // Prototype gateway — real Stripe checkout will be wired once Lovable Cloud is enabled.
+    await new Promise((r) => setTimeout(r, 900));
+    setLoading(false);
+    toast({
+      title: "Thank you 🤍",
+      description: `${type.replace("_", " ")} • ${currency} ${amt.toFixed(2)} • ${effectiveFreq.replace("_", " ")}`,
+    });
+  };
+
   return (
     <Layout>
-      <section className="py-8 md:py-12 px-4">
-        <div className="container max-w-2xl mx-auto space-y-6">
-          {/* Title */}
-          <div className="flex justify-center">
-            <Container className="!py-1 !px-4 inline-flex w-auto">
-              <span className="text-sm font-medium">Donate</span>
-            </Container>
-          </div>
-
-          {/* Hero */}
-          <Container className="!p-6 sm:!p-10 text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-full bg-foreground text-background flex items-center justify-center">
-              <Heart className="h-7 w-7" />
+      <section className="py-6 md:py-8 px-4">
+        <div className="container max-w-xl mx-auto space-y-4">
+          {/* Donation type selector */}
+          <Container className="!p-4 sm:!p-5 space-y-3">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Donation Type</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {DONATION_TYPES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setType(t.id)}
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-2xl border transition-all text-xs font-medium ${
+                    type === t.id
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-card text-foreground border-border/40 hover:border-foreground/40"
+                  }`}
+                >
+                  {t.icon}
+                  <span>{t.label}</span>
+                </button>
+              ))}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Support Al-Deen.org</h1>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
-              Al-Deen.org Is Free And Ad-Free. Your Donation Keeps The Servers Running
-              And Helps Us Build Better Tools For The Ummah.
+            <p className="text-xs text-muted-foreground text-center">
+              {DONATION_TYPES.find((d) => d.id === type)?.desc}
             </p>
           </Container>
 
-          {/* Tiers */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {TIERS.map(({ id, icon: Icon, title, amount, desc }) => (
-              <Container key={id} className="!p-5 flex flex-col items-center text-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-muted text-foreground flex items-center justify-center">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{title}</p>
-                <p className="text-xl font-bold">{amount}</p>
-                <p className="text-xs text-muted-foreground">{desc}</p>
-              </Container>
-            ))}
-          </div>
+          {/* Frequency */}
+          <Container className="!p-4 sm:!p-5 space-y-3">
+            <div className="flex justify-center">
+              <SlidingPill
+                size="md"
+                value={mode}
+                onChange={(v) => setMode(v as "once" | "recurring")}
+                options={[
+                  { id: "once", label: "One Time" },
+                  { id: "recurring", label: "Recurring" },
+                ]}
+              />
+            </div>
 
-          {/* CTA */}
-          <div className="flex justify-center pt-2">
-            <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto font-bold uppercase tracking-widest text-[10px] h-12 px-8">
-                Donate Now <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-            </a>
-          </div>
+            {mode === "recurring" && (
+              <div className="flex justify-center">
+                <SlidingPill
+                  size="sm"
+                  value={frequency}
+                  onChange={(v) => setFrequency(v as Frequency)}
+                  options={[
+                    { id: "daily", label: "Daily" },
+                    { id: "weekly", label: "Weekly" },
+                    { id: "monthly", label: "Monthly" },
+                    { id: "yearly", label: "Yearly" },
+                  ]}
+                />
+              </div>
+            )}
 
-          <p className="text-xs text-muted-foreground text-center pt-2">
+            {/* Amount with currency on left */}
+            <div className="flex items-stretch gap-2">
+              <div className="w-32 shrink-0">
+                <Dropdown
+                  value={currency}
+                  onChange={setCurrency}
+                  options={CURRENCIES}
+                />
+              </div>
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                  {currencySymbol}
+                </span>
+                <Input
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Amount"
+                  className="pl-9 text-base font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Quick presets */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {PRESETS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setAmount(String(p))}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    amount === String(p)
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-border/40 hover:border-foreground/40"
+                  }`}
+                >
+                  {currencySymbol}{p}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={donate}
+              disabled={loading}
+              className="w-full font-bold uppercase tracking-widest text-[10px] h-12"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Heart className="h-4 w-4 mr-2" />}
+              {loading ? "Processing…" : `Donate ${effectiveFreq === "one_time" ? "Now" : <Repeat className="inline h-3 w-3 ml-1" />}`}
+            </Button>
+          </Container>
+
+          <p className="text-xs text-muted-foreground text-center pt-1">
             Every Contribution, No Matter The Size, Is Deeply Appreciated. JazakAllahu Khairan.
           </p>
         </div>
