@@ -1079,6 +1079,7 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     resolution: "1080p",
     width: 600,
     height: 480,
+    exportFormat: "webm",
     reciter: RECITERS[0],
     surahId,
     ayahStart: ayahNumber ?? 1,
@@ -1092,13 +1093,6 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     borderColor: "#e5e7eb",
     borderWidth: 1,
     borderRadius: 24,
-    translations: ["Direct"],
-    transliterations: ["None"],
-    showWBW: false,
-    font: "uthmani",
-    arabicSize: 40,
-    translationSize: 18,
-    transliterationSize: 16,
     arabicColor: "#111827",
     translationColor: "#374151",
     transliterationColor: "#6b7280",
@@ -1114,5 +1108,6 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     showTafsir: true,
     showCopy: true,
     showShare: false,
+    hoverTooltip: true,
   };
 }
