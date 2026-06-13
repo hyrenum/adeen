@@ -606,7 +606,7 @@ export function RenderSurahDialog({
 
             {/* ============ RIGHT: Preview ============ */}
             <div className="space-y-3">
-              <Container className="!p-3">
+              <div className="w-full">
                 <div
                   ref={previewWrapRef}
                   className="relative w-full mx-auto overflow-hidden shadow-xl"
