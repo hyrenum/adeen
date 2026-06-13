@@ -165,7 +165,8 @@ export default function Donate() {
               className="w-full font-bold uppercase tracking-widest text-[10px] h-12"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Heart className="h-4 w-4 mr-2" />}
-              {loading ? "Processing…" : `Donate ${effectiveFreq === "one_time" ? "Now" : <Repeat className="inline h-3 w-3 ml-1" />}`}
+              {loading ? "Processing…" : (effectiveFreq === "one_time" ? "Donate Now" : "Donate Recurring")}
+              {!loading && effectiveFreq !== "one_time" && <Repeat className="inline h-3 w-3 ml-2" />}
             </Button>
           </Container>
 
