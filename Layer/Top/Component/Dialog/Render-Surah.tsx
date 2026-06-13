@@ -794,26 +794,26 @@ function buildEmbedPreviewDoc(
   const border = `${cfg.borderWidth}px solid ${cfg.borderColor}`;
 
   const cardFor = (v: AssembledVerse): string => {
-    const arabicWords = v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join(ecfg.font === "uthmani_v1" ? "" : " ");
+    const arabicWords = v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join(cfg.font === "uthmani_v1" ? "" : " ");
     const actions: string[] = [];
     if (cfg.audioPlayback) actions.push(btn("▶ Play"));
     if (cfg.showTafsir)    actions.push(btn("Tafsir"));
     if (cfg.showCopy)      actions.push(btn("Copy"));
     if (cfg.showShare)     actions.push(btn("Share"));
 
-    const trBlocks = ecfg.translations.filter((t) => t !== "None").map((src) =>
-      `<div class="tr" style="color:${cols.translationCol};font-size:${ecfg.translationSize}px">${escapeHtml(extraTr[src]?.[v.verseNumber - 1] ?? "")}</div>`
+    const trBlocks = cfg.translations.filter((t) => t !== "None").map((src) =>
+      `<div class="tr" style="color:${cols.translationCol};font-size:${cfg.translationSize}px">${escapeHtml(extraTr[src]?.[v.verseNumber - 1] ?? "")}</div>`
     ).join("");
-    const tlBlocks = ecfg.transliterations.filter((t) => t !== "None").map((src) =>
-      `<div class="tl" style="color:${cols.transliterationCol};font-size:${ecfg.transliterationSize}px">${escapeHtml(extraTl[src]?.[v.verseNumber - 1] ?? "")}</div>`
+    const tlBlocks = cfg.transliterations.filter((t) => t !== "None").map((src) =>
+      `<div class="tl" style="color:${cols.transliterationCol};font-size:${cfg.transliterationSize}px">${escapeHtml(extraTl[src]?.[v.verseNumber - 1] ?? "")}</div>`
     ).join("");
-    const wbw = ecfg.showWBW
+    const wbw = cfg.showWBW
       ? `<div class="wbw" dir="rtl">${v.words.map((w) => `<span>${escapeHtml(w)}</span>`).join("")}</div>`
       : "";
 
     return `<div class="card" style="background:${containerBg};border:${border};border-radius:${cfg.borderRadius}px">
       <div class="head"><span class="badge">${cfg.surahId}:${v.verseNumber}</span><div class="acts">${actions.join("")}</div></div>
-      <div class="ar" dir="rtl" style="color:${cols.arabicCol};font-size:${ecfg.arabicSize}px">${arabicWords}</div>
+      <div class="ar" dir="rtl" style="color:${cols.arabicCol};font-size:${cfg.arabicSize}px">${arabicWords}</div>
       ${wbw}
       ${tlBlocks}
       ${trBlocks}
@@ -993,37 +993,37 @@ async function renderToWebm(args: {
     drawContainerCard(cardX, cardY, cardW, cardH);
 
     // Arabic line (no per-word highlight in canvas to keep things robust; whole text in arabicCol, current word in highlight)
-    const ff = pageFontFamily(ecfg.font, cfg.surahId, v.verseNumber) || "serif";
+    const ff = pageFontFamily(cfg.font, cfg.surahId, v.verseNumber) || "serif";
     ctx.save();
-    ctx.font = `${ecfg.arabicSize * 2}px ${ff}, serif`;
+    ctx.font = `${cfg.arabicSize * 2}px ${ff}, serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const arabicY = cardY + cardH * 0.35;
-    const fullText = v.words.join(ecfg.font === "uthmani_v1" ? "" : " ");
+    const fullText = v.words.join(cfg.font === "uthmani_v1" ? "" : " ");
     ctx.fillStyle = arabicCol;
     const arLines = wrapText(ctx, fullText, cardW - 80);
-    const arLH = ecfg.arabicSize * 2 * 1.4;
+    const arLH = cfg.arabicSize * 2 * 1.4;
     arLines.forEach((ln, i) => ctx.fillText(ln, W / 2, arabicY - ((arLines.length - 1) * arLH) / 2 + i * arLH));
     // Highlight current word at top
     ctx.fillStyle = highlightCol;
-    ctx.font = `${ecfg.arabicSize * 2}px ${ff}, serif`;
+    ctx.font = `${cfg.arabicSize * 2}px ${ff}, serif`;
     ctx.fillText(v.words[wordIdx] || "", W / 2, cardY + 60);
     ctx.restore();
 
     // Translations
     let yCursor = cardY + cardH * 0.62;
-    const activeTr = ecfg.translations.filter((t) => t !== "None");
-    const activeTl = ecfg.transliterations.filter((t) => t !== "None");
+    const activeTr = cfg.translations.filter((t) => t !== "None");
+    const activeTl = cfg.transliterations.filter((t) => t !== "None");
     activeTl.forEach((src) => {
       const text = extraTransliterations[src]?.[v.verseNumber - 1] ?? "";
       if (!text) return;
-      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, ecfg.transliterationSize * 2, transliterationCol, "italic sans-serif");
+      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, cfg.transliterationSize * 2, transliterationCol, "italic sans-serif");
       yCursor += used + 16;
     });
     activeTr.forEach((src) => {
       const text = extraTranslations[src]?.[v.verseNumber - 1] ?? "";
       if (!text) return;
-      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, ecfg.translationSize * 2, translationCol, "sans-serif");
+      const used = drawCenteredText(text, W / 2, yCursor, cardW - 80, cfg.translationSize * 2, translationCol, "sans-serif");
       yCursor += used + 16;
     });
   };
