@@ -24,6 +24,7 @@ import { useBackHandler } from "@/Middle/Hook/Use-Back-Handler";
 import { cn } from "@/Middle/Library/utils";
 import { Maximize2, Minimize2, Plus, X, Copy, Download, Loader2 } from "lucide-react";
 import { toast } from "@/Middle/Hook/Use-Toast";
+import { useApp } from "@/Middle/Context/App";
 
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
