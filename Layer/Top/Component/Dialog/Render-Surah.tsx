@@ -181,9 +181,29 @@ export function RenderSurahDialog({
 }: Props) {
   useBackHandler(open, () => onOpenChange(false));
 
+  const app = useApp();
   const [cfg, setCfg] = useState<Config>(() => makeDefaults(surahId, ayahNumber, mode));
   const [fullscreen, setFullscreen] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
+
+  // Derived from user Settings — not exposed in this dialog.
+  const ecfg = useMemo(() => {
+    const trs = (app.selectedTranslations && app.selectedTranslations.length > 0)
+      ? app.selectedTranslations.map((t) => t === "translation" ? "Direct" : t)
+      : ["None"];
+    const tls = app.selectedAyahTransliterator && app.selectedAyahTransliterator !== "None"
+      ? [app.selectedAyahTransliterator] : ["None"];
+    return {
+      ...cfg,
+      font: app.quranFont as RenderFont,
+      translations: trs,
+      transliterations: tls,
+      showWBW: true, // honor WBW transliteration/translation visibility
+      arabicSize: 16 + (app.fontSize ?? 3) * 6,
+      translationSize: 12 + (app.translationFontSize ?? 3) * 3,
+      transliterationSize: 12 + (app.transliterationSize ?? 3) * 3,
+    };
+  }, [cfg, app.quranFont, app.selectedTranslations, app.selectedAyahTransliterator, app.fontSize, app.translationFontSize, app.transliterationSize]);
 
   // Load surah data first (so we can clamp range to count)
   const [surahData, setSurahData] = useState<AssembledSurah | null>(null);
