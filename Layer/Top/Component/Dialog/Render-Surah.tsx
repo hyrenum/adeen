@@ -782,7 +782,7 @@ function SliderRow({
 
 // ====================== Embed preview (Verse-Card style) ======================
 function buildEmbedPreviewDoc(
-  cfg: Config,
+  cfg: Config & Record<string, any>,
   verses: AssembledVerse[],
   cols: { arabicCol: string; translationCol: string; transliterationCol: string; highlightCol: string },
   extraTr: Record<string, string[]>,
