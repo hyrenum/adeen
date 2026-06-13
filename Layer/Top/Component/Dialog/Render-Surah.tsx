@@ -1041,7 +1041,7 @@ async function renderToWebm(args: {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.webm`;
+  a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${ext}`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
