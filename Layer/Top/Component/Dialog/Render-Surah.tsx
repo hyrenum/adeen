@@ -585,6 +585,8 @@ export function RenderSurahDialog({
                       onChange={(v) => setCfg((c) => ({ ...c, showCopy: v }))} />
                     <ToggleRow label="Show Share Button" value={cfg.showShare}
                       onChange={(v) => setCfg((c) => ({ ...c, showShare: v }))} />
+                    <ToggleRow label="Hover Tooltip" value={cfg.hoverTooltip}
+                      onChange={(v) => setCfg((c) => ({ ...c, hoverTooltip: v }))} />
                   </Container>
                 )}
 
