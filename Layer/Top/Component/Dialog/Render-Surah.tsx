@@ -34,6 +34,7 @@ interface Config {
   resolution: "1080p" | "720p" | "vertical";
   width: number;
   height: number;
+  exportFormat: "webm" | "mp4";
 
   reciter: string;
   surahId: number;
@@ -51,15 +52,6 @@ interface Config {
   borderColor: string;
   borderWidth: number;
   borderRadius: number;
-
-  translations: string[];
-  transliterations: string[];
-  showWBW: boolean;
-
-  font: RenderFont;
-  arabicSize: number;
-  translationSize: number;
-  transliterationSize: number;
 
   arabicColor: string;
   translationColor: string;
@@ -80,6 +72,7 @@ interface Config {
   showTafsir: boolean;
   showCopy: boolean;
   showShare: boolean;
+  hoverTooltip: boolean;
 }
 
 const RECITERS = ["Mishary Rashid Alafasy", "Sa'd al-Ghamdi", "Maher al-Muaiqly"];
