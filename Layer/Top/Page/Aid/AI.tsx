@@ -248,20 +248,31 @@ export default function AI() {
 
   const composer = (
     <div className="w-full flex gap-2 items-end">
-      <Textarea
-        ref={taRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            send();
-          }
-        }}
-        placeholder="Ask anything..."
-        rows={1}
-        className="flex-1 resize-none min-h-[44px] max-h-32 rounded-xl border border-border bg-transparent px-3 py-2"
-      />
+      <div className="flex-1 flex flex-col">
+        <Textarea
+          ref={taRef}
+          value={input}
+          onChange={(e) => {
+            const v = e.target.value.slice(0, MAX_INPUT_CHARS);
+            setInput(v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          placeholder="Ask anything..."
+          rows={1}
+          maxLength={MAX_INPUT_CHARS}
+          className="w-full resize-none min-h-[44px] max-h-32 overflow-y-auto rounded-full border border-border/30 bg-card text-foreground px-4 py-2.5"
+        />
+        {input.length > MAX_INPUT_CHARS * 0.8 && (
+          <span className="text-[10px] text-muted-foreground self-end mt-1 mr-2">
+            {input.length}/{MAX_INPUT_CHARS}
+          </span>
+        )}
+      </div>
       <Button onClick={() => send()} disabled={loading || !input.trim()} size="icon" className="rounded-full h-11 w-11 shrink-0">
         <Send className="h-4 w-4" />
       </Button>
