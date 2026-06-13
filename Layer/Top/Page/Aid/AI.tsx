@@ -25,6 +25,10 @@ import {
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { supabase } from "@/Bottom/Integration/Supabase/client";
 import { cn } from "@/Middle/Library/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const MAX_INPUT_CHARS = 4000;
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Thread = { id: string; title: string; messages: Msg[]; updatedAt: number };
