@@ -619,7 +619,7 @@ export function RenderSurahDialog({
                   {mode === "embed" ? (
                     <iframe
                       title="Embed preview"
-                      srcDoc={buildEmbedPreviewDoc(cfg, verses, { arabicCol, translationCol, transliterationCol, highlightCol }, extraTranslations, extraTransliterations)}
+                      srcDoc={buildEmbedPreviewDoc(ecfg as unknown as Config, verses, { arabicCol, translationCol, transliterationCol, highlightCol }, extraTranslations, extraTransliterations)}
                       className="absolute inset-0 w-full h-full bg-white"
                     />
                   ) : (
