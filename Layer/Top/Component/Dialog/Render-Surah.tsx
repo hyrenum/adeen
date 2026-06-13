@@ -713,7 +713,8 @@ export function RenderSurahDialog({
                     </button>
                   )}
                 </div>
-              </Container>
+              </div>
+
 
               {mode === "embed" && (
                 <Container className="!px-4 !py-3">
