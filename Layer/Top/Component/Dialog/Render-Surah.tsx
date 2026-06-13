@@ -394,7 +394,7 @@ export function RenderSurahDialog({
   return (
     <div className="fixed inset-0 z-40 bg-background">
       <ScrollArea className="h-full">
-        <div className={cn("p-3 sm:p-4 pt-24 sm:pt-28 mx-auto w-full", fullscreen ? "max-w-none" : "max-w-7xl")}>
+        <div className={cn("p-3 sm:p-4 pt-16 sm:pt-20 mx-auto w-full", fullscreen ? "max-w-none" : "max-w-7xl")}>
           <div className={cn(
             "grid gap-3",
             fullscreen ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[360px_1fr]"
