@@ -405,34 +405,36 @@ export function RenderSurahDialog({
                 {/* Output */}
                 <Container className="!px-4 !py-3">
                   <SectionTitle>Output</SectionTitle>
-                  {mode === "render" ? (
-                    <Row label="Resolution">
-                      <Select value={cfg.resolution} onValueChange={(v: Config["resolution"]) => setCfg((c) => ({ ...c, resolution: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(RESOLUTIONS).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Row>
-                  ) : (
-                    <>
-                      <Row label="Width"><Input type="number" value={cfg.width}
-                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                      <Row label="Height"><Input type="number" value={cfg.height}
-                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                    </>
-                  )}
                   {mode === "render" && (
-                    <Row label="Reciter">
-                      <Select value={cfg.reciter} onValueChange={(v) => setCfg((c) => ({ ...c, reciter: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {RECITERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </Row>
+                    <>
+                      <Row label="Resolution">
+                        <Select value={cfg.resolution} onValueChange={(v: Config["resolution"]) => setCfg((c) => ({ ...c, resolution: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(RESOLUTIONS).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                      <Row label="Format">
+                        <Select value={cfg.exportFormat} onValueChange={(v: Config["exportFormat"]) => setCfg((c) => ({ ...c, exportFormat: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="webm">WebM (VP9)</SelectItem>
+                            <SelectItem value="mp4">MP4</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                      <Row label="Reciter">
+                        <Select value={cfg.reciter} onValueChange={(v) => setCfg((c) => ({ ...c, reciter: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {RECITERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                    </>
                   )}
                   <Row label="Surah">
                     <Select value={String(cfg.surahId)} onValueChange={(v) => setCfg((c) => ({ ...c, surahId: parseInt(v), ayahStart: 1, ayahEnd: 1 }))}>
