@@ -19,7 +19,8 @@ export function AyahView({
   onRenderClick,
   hoverTransliteration,
   inlineTransliteration,
-}: AyahViewProps) {
+  inlineTranslation,
+}: AyahViewProps & { inlineTranslation?: string }) {
   if (!verses || !Array.isArray(verses)) {
     console.warn('AyahView: verses is undefined or not an array', verses);
     return null;
@@ -49,6 +50,7 @@ export function AyahView({
           onRenderClick={onRenderClick ? () => onRenderClick(verse.verseNumber) : undefined}
           hoverTransliteration={hoverTransliteration}
           inlineTransliteration={inlineTransliteration}
+          inlineTranslation={inlineTranslation}
         />
       ))}
     </div>

@@ -75,6 +75,7 @@ export interface VerseCardProps {
   onRenderClick?: () => void;
   hoverTransliteration: string | boolean;
   inlineTransliteration: string;
+  inlineTranslation?: string;
 }
 
 export interface AyahViewProps {
@@ -94,4 +95,5 @@ export interface AyahViewProps {
   onRenderClick?: (ayahId: number) => void;
   hoverTransliteration: string | boolean;
   inlineTransliteration: string;
+  inlineTranslation?: string;
 }

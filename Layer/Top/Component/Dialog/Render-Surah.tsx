@@ -25,6 +25,7 @@ import { cn } from "@/Middle/Library/utils";
 import { Maximize2, Minimize2, Plus, X, Copy, Download, Loader2 } from "lucide-react";
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { useApp } from "@/Middle/Context/App";
+import { toCanvas as htiToCanvas } from "html-to-image";
 
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
@@ -184,6 +185,7 @@ export function RenderSurahDialog({
   const app = useApp();
   const [cfg, setCfg] = useState<Config>(() => makeDefaults(surahId, ayahNumber, mode));
   const [fullscreen, setFullscreen] = useState(false);
+  const [rendering, setRendering] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
 
   // Derived from user Settings — not exposed in this dialog.
@@ -205,6 +207,9 @@ export function RenderSurahDialog({
     };
   }, [cfg, app.quranFont, app.selectedTranslations, app.selectedAyahTransliterator, app.fontSize, app.translationFontSize, app.transliterationSize]);
 
+  const inlineWbwTr = (app as any).inlineTranslation && (app as any).inlineTranslation !== "None" ? (app as any).inlineTranslation : undefined;
+  const inlineWbwTl = (app as any).inlineTransliteration && (app as any).inlineTransliteration !== "None" ? (app as any).inlineTransliteration : undefined;
+
   // Load surah data first (so we can clamp range to count)
   const [surahData, setSurahData] = useState<AssembledSurah | null>(null);
   useEffect(() => {
@@ -216,9 +221,11 @@ export function RenderSurahDialog({
       fontType: fontToType(ecfg.font),
       translation: primaryTr,
       transliteration: primaryTl,
+      wbwTranslationInline: inlineWbwTr,
+      wbwTransliterationInline: inlineWbwTl,
     }).then((d) => { if (!cancelled) setSurahData(d); });
     return () => { cancelled = true; };
-  }, [cfg.surahId, ecfg.font, ecfg.translations, ecfg.transliterations]);
+  }, [cfg.surahId, ecfg.font, ecfg.translations, ecfg.transliterations, inlineWbwTr, inlineWbwTl]);
 
   // Sync when caller props change
   useEffect(() => {
@@ -294,11 +301,11 @@ export function RenderSurahDialog({
   const totalWords = useMemo(() => verses.reduce((a, v) => a + v.words.length, 0), [verses]);
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    if (!open || totalWords === 0 || mode !== "render") return;
+    if (!open || totalWords === 0 || mode !== "render" || rendering) return;
     setTick(0);
     const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
     return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode]);
+  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode, rendering]);
 
   const currentVerseIdx = useMemo(() => {
     let count = 0;
@@ -361,15 +368,22 @@ export function RenderSurahDialog({
     return `<iframe src="${url}" width="${cfg.width}" height="${cfg.height}" style="border:0;border-radius:12px" allow="autoplay" loading="lazy"></iframe>`;
   }, [cfg]);
 
-  // ---- Real render: canvas + MediaRecorder ----
-  const [rendering, setRendering] = useState(false);
+  // ---- Real render: capture preview DOM frame-by-frame via html-to-image ----
   const handleRender = useCallback(async () => {
     if (rendering) return;
+    const node = previewWrapRef.current;
+    if (!node) { toast({ title: "Preview not ready", variant: "destructive" }); return; }
     setRendering(true);
     try {
-      await renderToWebm({
-        verses, cfg: ecfg as unknown as Config, arabicCol, translationCol, transliterationCol, highlightCol,
-        extraTranslations, extraTransliterations,
+      await renderPreviewDomToVideo({
+        node,
+        totalWords,
+        perWordMs: 600,
+        fps: 24,
+        format: cfg.exportFormat,
+        targetSize: previewSize,
+        setTick,
+        fileName: `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}`,
       });
       toast({ title: "Video downloaded", description: `Saved as .${cfg.exportFormat} to your downloads.` });
     } catch (err) {
@@ -378,7 +392,7 @@ export function RenderSurahDialog({
     } finally {
       setRendering(false);
     }
-  }, [rendering, verses, cfg, ecfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
+  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize]);
 
   if (!open) return null;
 
@@ -666,22 +680,48 @@ export function RenderSurahDialog({
                         return (
                           <div className="absolute inset-0 flex items-center justify-center p-6">
                             <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
-                              <div dir="rtl"
-                                className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
-                                style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
-                                {v.words.map((w, i) => (
-                                  <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                    {w}{ecfg.font === "uthmani_v1" ? "" : " "}
-                                  </span>
-                                ))}
-                              </div>
+                              {(() => {
+                                const hasInlineTr = !!v.wbwTranslationInline?.length;
+                                const hasInlineTl = !!v.wbwTransliterationInline?.length;
+                                const anyInline = hasInlineTr || hasInlineTl;
 
-                              {ecfg.showWBW && (
-                                <div dir="rtl" className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs"
-                                  style={{ color: transliterationCol }}>
-                                  {v.words.map((w, i) => <span key={i}>{w}</span>)}
-                                </div>
-                              )}
+                                if (anyInline) {
+                                  return (
+                                    <div dir="rtl" className={cn("flex flex-wrap justify-center items-start gap-x-3 gap-y-2", fontClass(ecfg.font))}>
+                                      {v.words.map((w, i) => {
+                                        const isLast = i === v.words.length - 1;
+                                        return (
+                                          <div key={i} className="flex flex-col items-center" style={{ minWidth: "2.5rem" }}>
+                                            <span style={{ color: i === currentWordIdx ? highlightCol : arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff, lineHeight: 1.6 }}>{w}</span>
+                                            {!isLast && (
+                                              <div className="flex flex-col items-center gap-y-0.5 mt-1 w-full" dir="ltr" style={{ fontFamily: "system-ui, sans-serif" }}>
+                                                {hasInlineTr && v.wbwTranslationInline?.[i] && (
+                                                  <span style={{ color: translationCol, fontSize: 12, textAlign: "center", lineHeight: 1.2 }}>{v.wbwTranslationInline[i]}</span>
+                                                )}
+                                                {hasInlineTl && v.wbwTransliterationInline?.[i] && (
+                                                  <span style={{ color: transliterationCol, fontSize: 12, fontStyle: "italic", textAlign: "center", lineHeight: 1.2 }}>{v.wbwTransliterationInline[i]}</span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div dir="rtl"
+                                    className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
+                                    style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
+                                    {v.words.map((w, i) => (
+                                      <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
+                                        {w}{ecfg.font === "uthmani_v1" ? "" : " "}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
 
                               {activeTransliterations.map((src) => (
                                 <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
@@ -1114,4 +1154,91 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     showShare: false,
     hoverTooltip: true,
   };
+}
+
+// ====================== DOM-snapshot renderer (matches preview exactly) ======================
+
+
+
+async function renderPreviewDomToVideo(args: {
+  node: HTMLElement;
+  totalWords: number;
+  perWordMs: number;
+  fps: number;
+  format: "webm" | "mp4";
+  targetSize: { w: number; h: number };
+  setTick: (n: number) => void;
+  fileName: string;
+}): Promise<void> {
+  const { node, totalWords, perWordMs, fps, format, targetSize, setTick, fileName } = args;
+  if (totalWords <= 0) throw new Error("No content to render");
+
+  const out = document.createElement("canvas");
+  out.width = targetSize.w;
+  out.height = targetSize.h;
+  const ctx = out.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+
+  const stream = out.captureStream(fps);
+  const wantMp4 = format === "mp4";
+  const candidates = wantMp4
+    ? ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]
+    : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+  const mime = candidates.find((m) => (window as any).MediaRecorder?.isTypeSupported?.(m)) || "video/webm";
+  const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
+
+  const chunks: BlobPart[] = [];
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  const done = new Promise<Blob>((resolve) => {
+    rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
+  });
+
+  rec.start();
+
+  const framesPerWord = Math.max(1, Math.round((perWordMs / 1000) * fps));
+  const totalFrames = totalWords * framesPerWord;
+
+  // pixelRatio scales captured node to fill target canvas height
+  const nodeRect = node.getBoundingClientRect();
+  const pixelRatio = Math.max(1, targetSize.h / Math.max(1, nodeRect.height));
+
+  let lastTick = -1;
+  for (let f = 0; f < totalFrames; f++) {
+    const tick = Math.floor(f / framesPerWord) % totalWords;
+    if (tick !== lastTick) {
+      setTick(tick);
+      lastTick = tick;
+      // allow React to commit + paint
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+    try {
+      const snap = await htiToCanvas(node, { pixelRatio, cacheBust: true, skipFonts: false });
+      // Cover-fit snap into target
+      const sw = snap.width, sh = snap.height;
+      const sAR = sw / sh, tAR = targetSize.w / targetSize.h;
+      let dw = targetSize.w, dh = targetSize.h, dx = 0, dy = 0;
+      if (sAR > tAR) {
+        // snap wider — fit height
+        dh = targetSize.h; dw = sAR * dh; dx = (targetSize.w - dw) / 2;
+      } else {
+        dw = targetSize.w; dh = dw / sAR; dy = (targetSize.h - dh) / 2;
+      }
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, targetSize.w, targetSize.h);
+      ctx.drawImage(snap, dx, dy, dw, dh);
+    } catch (err) {
+      console.warn("Frame capture failed", err);
+    }
+    await new Promise((r) => setTimeout(r, 1000 / fps));
+  }
+
+  rec.stop();
+  const blob = await done;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${fileName}.${ext}`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
