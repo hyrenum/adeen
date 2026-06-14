@@ -120,7 +120,7 @@ export function Desktop({
       <div className="h-full flex">
         {/* Sidebar */}
         <div className="shrink-0 w-64 max-h-full flex flex-col pt-10 pl-6 pb-6 overflow-hidden self-start">
-          <Container className="flex-1 min-h-0 p-2 flex flex-col overflow-y-auto !rounded-3xl">
+          <div className="flex-1 min-h-0 p-2 flex flex-col overflow-y-auto">
 
             {/* Search Section */}
             <div className="mt-5 mb-0">
@@ -213,7 +213,7 @@ export function Desktop({
                 </div>
               )}
             </div>
-          </Container>
+          </div>
         </div>
 
 
