@@ -225,97 +225,109 @@ export function VerseCard({
           </div>
         </div>
 
-        {/* Arabic Text – now with page‑specific fontFamily */}
-        {showArabicText && (
-          <div className="flex justify-end mb-4">
-            <div
-              className={computedFontClass}
-              style={{
-                fontSize: arabicFontSize,
-                lineHeight: 2.2,
-                fontFamily: pageFontFamily,
-                width: "100%",
-              }}
+        {/* Arabic Text – with optional inline WBW translation/transliteration columns */}
+        {showArabicText && (() => {
+          const showInlineTranslation = inlineTranslation && inlineTranslation !== "None";
+          const showInlineTransliteration = inlineTransliteration && inlineTransliteration !== "None";
+          const anyInline = showInlineTranslation || showInlineTransliteration;
 
-              dir="rtl"
-            >
-              {verse.words.map((glyph, idx) => {
-                const isVerseEnd = idx === verse.words.length - 1;
-                const belongsToVerse = verse.verseNumber;
-                const isVerseHighlighted = hoveredVerse !== null && belongsToVerse === hoveredVerse;
+          const wordNodes = verse.words.map((glyph, idx) => {
+            const isVerseEnd = idx === verse.words.length - 1;
+            const belongsToVerse = verse.verseNumber;
+            const isVerseHighlighted = hoveredVerse !== null && belongsToVerse === hoveredVerse;
 
-                const translation = (!isVerseEnd && verse.wbwTranslation?.[idx]) || undefined;
-                const transliteration = (!isVerseEnd && verse.wbwTransliteration?.[idx]) || undefined;
-                
-                const wordKey = `word-${verse.verseNumber}-${idx}`;
-                const ayahKey = `ayah-${verse.verseNumber}`;
-                const isPlayingAudio = isPlaying(wordKey) || isPlaying(ayahKey);
-                const isActive = !isVerseEnd && verse.verseNumber === activeVerse && idx === activeWord;
+            const tooltipTranslation = (!isVerseEnd && verse.wbwTranslationHover?.[idx]) || (!isVerseEnd && verse.wbwTranslation?.[idx]) || undefined;
+            const tooltipTransliteration = (!isVerseEnd && verse.wbwTransliterationHover?.[idx]) || (!isVerseEnd && verse.wbwTransliteration?.[idx]) || undefined;
 
-                let handleClick: (() => void) | undefined;
-                if (isVerseEnd) {
-                  handleClick = () => playAyah(surah.id, verse.verseNumber);
-                } else {
-                  handleClick = () => playWordAudio(verse.verseNumber, idx);
-                }
+            const inlineTrText = !isVerseEnd && showInlineTranslation
+              ? (verse.wbwTranslationInline?.[idx] || verse.wbwTranslation?.[idx])
+              : undefined;
+            const inlineTlText = !isVerseEnd && showInlineTransliteration
+              ? (verse.wbwTransliterationInline?.[idx] || verse.wbwTransliteration?.[idx])
+              : undefined;
 
-                const handleMouseEnter = () => {
-                  if (isVerseEnd) {
-                    setHoveredVerse(verse.verseNumber);
-                  }
-                };
+            const wordKey = `word-${verse.verseNumber}-${idx}`;
+            const ayahKey = `ayah-${verse.verseNumber}`;
+            const isPlayingAudio = isPlaying(wordKey) || isPlaying(ayahKey);
+            const isActive = !isVerseEnd && verse.verseNumber === activeVerse && idx === activeWord;
 
-                const handleMouseLeave = () => {
-                  if (isVerseEnd) {
-                    setHoveredVerse(null);
-                  }
-                };
+            const handleClick = isVerseEnd
+              ? () => playAyah(surah.id, verse.verseNumber)
+              : () => playWordAudio(verse.verseNumber, idx);
+            const handleMouseEnter = () => { if (isVerseEnd) setHoveredVerse(verse.verseNumber); };
+            const handleMouseLeave = () => { if (isVerseEnd) setHoveredVerse(null); };
 
-                // Arabic Quran text: hover stays GREEN (only place green is allowed,
-                // per explicit user override).
-                let className = "inline select-text transition-colors duration-200 ";
-                if (isVerseHighlighted && !isVerseEnd) {
-                  className += "text-emerald-600 dark:text-emerald-400";
-                } else if (isActive) {
-                  className += "text-emerald-600 dark:text-emerald-400 animate-pulse";
-                } else if (isPlayingAudio) {
-                  className += "text-emerald-600 dark:text-emerald-400 animate-pulse";
-                } else if (isVerseEnd) {
-                  className += "text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer";
-                } else {
-                  className += "text-foreground hover:text-emerald-600 dark:hover:text-emerald-400";
-                }
+            let className = "inline select-text transition-colors duration-200 ";
+            if (isVerseHighlighted && !isVerseEnd) className += "text-emerald-600 dark:text-emerald-400";
+            else if (isActive) className += "text-emerald-600 dark:text-emerald-400 animate-pulse";
+            else if (isPlayingAudio) className += "text-emerald-600 dark:text-emerald-400 animate-pulse";
+            else if (isVerseEnd) className += "text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer";
+            else className += "text-foreground hover:text-emerald-600 dark:hover:text-emerald-400";
 
-                let cursorStyle = "text";
-                if (isVerseEnd) {
-                  cursorStyle = "pointer";
-                } else if (hoverRecitation) {
-                  cursorStyle = "pointer";
-                }
+            const cursorStyle = isVerseEnd ? "pointer" : (hoverRecitation ? "pointer" : "text");
 
-                return (
-                  <WordTooltip
-                    key={idx}
-                    translation={translation}
-                    transliteration={transliteration}
-                    enabled={isTooltipEnabled}
-                    onClick={handleClick}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <span
-                      className={className}
-                      style={{ cursor: cursorStyle }}
-                      onClick={handleClick}
-                    >
-                      {glyph}{' '}
+            const arabicSpan = (
+              <WordTooltip
+                translation={tooltipTranslation}
+                transliteration={tooltipTransliteration}
+                enabled={isTooltipEnabled}
+                onClick={handleClick}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <span
+                  className={className}
+                  style={{ cursor: cursorStyle, fontSize: arabicFontSize, fontFamily: pageFontFamily, lineHeight: anyInline ? 1.6 : 2.2 }}
+                  onClick={handleClick}
+                >
+                  {glyph}{anyInline ? "" : " "}
+                </span>
+              </WordTooltip>
+            );
+
+            if (!anyInline) return arabicSpan;
+
+            return (
+              <div key={idx} className="flex flex-col items-center" style={{ minWidth: "2rem" }}>
+                {arabicSpan}
+                <div className="flex flex-col items-center gap-y-0.5 mt-1 w-full" dir="ltr">
+                  {inlineTrText && (
+                    <span className="text-foreground text-center leading-tight block w-full" style={{ fontSize: "12px", fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)" }}>
+                      {inlineTrText}
                     </span>
-                  </WordTooltip>
-                );
-              })}
+                  )}
+                  {inlineTlText && (
+                    <span className="text-muted-foreground text-center leading-tight block w-full italic" style={{ fontSize: "12px", fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)" }}>
+                      {inlineTlText}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          });
+
+          if (anyInline) {
+            return (
+              <div className={cn("mb-4", computedFontClass)} dir="rtl">
+                <div className="flex flex-wrap justify-end items-start gap-x-3 gap-y-2 w-full">
+                  {wordNodes}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex justify-end mb-4">
+              <div
+                className={computedFontClass}
+                style={{ fontSize: arabicFontSize, lineHeight: 2.2, fontFamily: pageFontFamily, width: "100%" }}
+                dir="rtl"
+              >
+                {wordNodes}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Transliteration */}
         {showTransliteration && getTransliterationText && (
