@@ -35,6 +35,7 @@ export function VerseCard({
   onRenderClick,
   hoverTransliteration,
   inlineTransliteration,
+  inlineTranslation,
 }: VerseCardProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
