@@ -205,6 +205,9 @@ export function RenderSurahDialog({
     };
   }, [cfg, app.quranFont, app.selectedTranslations, app.selectedAyahTransliterator, app.fontSize, app.translationFontSize, app.transliterationSize]);
 
+  const inlineWbwTr = (app as any).inlineTranslation && (app as any).inlineTranslation !== "None" ? (app as any).inlineTranslation : undefined;
+  const inlineWbwTl = (app as any).inlineTransliteration && (app as any).inlineTransliteration !== "None" ? (app as any).inlineTransliteration : undefined;
+
   // Load surah data first (so we can clamp range to count)
   const [surahData, setSurahData] = useState<AssembledSurah | null>(null);
   useEffect(() => {
@@ -216,9 +219,11 @@ export function RenderSurahDialog({
       fontType: fontToType(ecfg.font),
       translation: primaryTr,
       transliteration: primaryTl,
+      wbwTranslationInline: inlineWbwTr,
+      wbwTransliterationInline: inlineWbwTl,
     }).then((d) => { if (!cancelled) setSurahData(d); });
     return () => { cancelled = true; };
-  }, [cfg.surahId, ecfg.font, ecfg.translations, ecfg.transliterations]);
+  }, [cfg.surahId, ecfg.font, ecfg.translations, ecfg.transliterations, inlineWbwTr, inlineWbwTl]);
 
   // Sync when caller props change
   useEffect(() => {
