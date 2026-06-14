@@ -184,6 +184,7 @@ export function RenderSurahDialog({
   const app = useApp();
   const [cfg, setCfg] = useState<Config>(() => makeDefaults(surahId, ayahNumber, mode));
   const [fullscreen, setFullscreen] = useState(false);
+  const [rendering, setRendering] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
 
   // Derived from user Settings — not exposed in this dialog.
