@@ -1157,7 +1157,8 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
 }
 
 // ====================== DOM-snapshot renderer (matches preview exactly) ======================
-import { toCanvas as htiToCanvas } from "html-to-image";
+
+
 
 async function renderPreviewDomToVideo(args: {
   node: HTMLElement;
