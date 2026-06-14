@@ -1154,3 +1154,89 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     hoverTooltip: true,
   };
 }
+
+// ====================== DOM-snapshot renderer (matches preview exactly) ======================
+import { toCanvas as htiToCanvas } from "html-to-image";
+
+async function renderPreviewDomToVideo(args: {
+  node: HTMLElement;
+  totalWords: number;
+  perWordMs: number;
+  fps: number;
+  format: "webm" | "mp4";
+  targetSize: { w: number; h: number };
+  setTick: (n: number) => void;
+  fileName: string;
+}): Promise<void> {
+  const { node, totalWords, perWordMs, fps, format, targetSize, setTick, fileName } = args;
+  if (totalWords <= 0) throw new Error("No content to render");
+
+  const out = document.createElement("canvas");
+  out.width = targetSize.w;
+  out.height = targetSize.h;
+  const ctx = out.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+
+  const stream = out.captureStream(fps);
+  const wantMp4 = format === "mp4";
+  const candidates = wantMp4
+    ? ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]
+    : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+  const mime = candidates.find((m) => (window as any).MediaRecorder?.isTypeSupported?.(m)) || "video/webm";
+  const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
+
+  const chunks: BlobPart[] = [];
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  const done = new Promise<Blob>((resolve) => {
+    rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
+  });
+
+  rec.start();
+
+  const framesPerWord = Math.max(1, Math.round((perWordMs / 1000) * fps));
+  const totalFrames = totalWords * framesPerWord;
+
+  // pixelRatio scales captured node to fill target canvas height
+  const nodeRect = node.getBoundingClientRect();
+  const pixelRatio = Math.max(1, targetSize.h / Math.max(1, nodeRect.height));
+
+  let lastTick = -1;
+  for (let f = 0; f < totalFrames; f++) {
+    const tick = Math.floor(f / framesPerWord) % totalWords;
+    if (tick !== lastTick) {
+      setTick(tick);
+      lastTick = tick;
+      // allow React to commit + paint
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+    try {
+      const snap = await htiToCanvas(node, { pixelRatio, cacheBust: true, skipFonts: false });
+      // Cover-fit snap into target
+      const sw = snap.width, sh = snap.height;
+      const sAR = sw / sh, tAR = targetSize.w / targetSize.h;
+      let dw = targetSize.w, dh = targetSize.h, dx = 0, dy = 0;
+      if (sAR > tAR) {
+        // snap wider — fit height
+        dh = targetSize.h; dw = sAR * dh; dx = (targetSize.w - dw) / 2;
+      } else {
+        dw = targetSize.w; dh = dw / sAR; dy = (targetSize.h - dh) / 2;
+      }
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, targetSize.w, targetSize.h);
+      ctx.drawImage(snap, dx, dy, dw, dh);
+    } catch (err) {
+      console.warn("Frame capture failed", err);
+    }
+    await new Promise((r) => setTimeout(r, 1000 / fps));
+  }
+
+  rec.stop();
+  const blob = await done;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${fileName}.${ext}`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
