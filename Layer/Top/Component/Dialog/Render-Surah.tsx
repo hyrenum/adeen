@@ -367,15 +367,22 @@ export function RenderSurahDialog({
     return `<iframe src="${url}" width="${cfg.width}" height="${cfg.height}" style="border:0;border-radius:12px" allow="autoplay" loading="lazy"></iframe>`;
   }, [cfg]);
 
-  // ---- Real render: canvas + MediaRecorder ----
-  const [rendering, setRendering] = useState(false);
+  // ---- Real render: capture preview DOM frame-by-frame via html-to-image ----
   const handleRender = useCallback(async () => {
     if (rendering) return;
+    const node = previewWrapRef.current;
+    if (!node) { toast({ title: "Preview not ready", variant: "destructive" }); return; }
     setRendering(true);
     try {
-      await renderToWebm({
-        verses, cfg: ecfg as unknown as Config, arabicCol, translationCol, transliterationCol, highlightCol,
-        extraTranslations, extraTransliterations,
+      await renderPreviewDomToVideo({
+        node,
+        totalWords,
+        perWordMs: 600,
+        fps: 24,
+        format: cfg.exportFormat,
+        targetSize: previewSize,
+        setTick,
+        fileName: `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}`,
       });
       toast({ title: "Video downloaded", description: `Saved as .${cfg.exportFormat} to your downloads.` });
     } catch (err) {
@@ -384,7 +391,7 @@ export function RenderSurahDialog({
     } finally {
       setRendering(false);
     }
-  }, [rendering, verses, cfg, ecfg, arabicCol, translationCol, transliterationCol, highlightCol, extraTranslations, extraTransliterations]);
+  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize]);
 
   if (!open) return null;
 
