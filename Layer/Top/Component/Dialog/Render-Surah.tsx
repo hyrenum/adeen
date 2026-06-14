@@ -671,22 +671,48 @@ export function RenderSurahDialog({
                         return (
                           <div className="absolute inset-0 flex items-center justify-center p-6">
                             <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
-                              <div dir="rtl"
-                                className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
-                                style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
-                                {v.words.map((w, i) => (
-                                  <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                    {w}{ecfg.font === "uthmani_v1" ? "" : " "}
-                                  </span>
-                                ))}
-                              </div>
+                              {(() => {
+                                const hasInlineTr = !!v.wbwTranslationInline?.length;
+                                const hasInlineTl = !!v.wbwTransliterationInline?.length;
+                                const anyInline = hasInlineTr || hasInlineTl;
 
-                              {ecfg.showWBW && (
-                                <div dir="rtl" className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs"
-                                  style={{ color: transliterationCol }}>
-                                  {v.words.map((w, i) => <span key={i}>{w}</span>)}
-                                </div>
-                              )}
+                                if (anyInline) {
+                                  return (
+                                    <div dir="rtl" className={cn("flex flex-wrap justify-center items-start gap-x-3 gap-y-2", fontClass(ecfg.font))}>
+                                      {v.words.map((w, i) => {
+                                        const isLast = i === v.words.length - 1;
+                                        return (
+                                          <div key={i} className="flex flex-col items-center" style={{ minWidth: "2.5rem" }}>
+                                            <span style={{ color: i === currentWordIdx ? highlightCol : arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff, lineHeight: 1.6 }}>{w}</span>
+                                            {!isLast && (
+                                              <div className="flex flex-col items-center gap-y-0.5 mt-1 w-full" dir="ltr" style={{ fontFamily: "system-ui, sans-serif" }}>
+                                                {hasInlineTr && v.wbwTranslationInline?.[i] && (
+                                                  <span style={{ color: translationCol, fontSize: 12, textAlign: "center", lineHeight: 1.2 }}>{v.wbwTranslationInline[i]}</span>
+                                                )}
+                                                {hasInlineTl && v.wbwTransliterationInline?.[i] && (
+                                                  <span style={{ color: transliterationCol, fontSize: 12, fontStyle: "italic", textAlign: "center", lineHeight: 1.2 }}>{v.wbwTransliterationInline[i]}</span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div dir="rtl"
+                                    className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
+                                    style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
+                                    {v.words.map((w, i) => (
+                                      <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
+                                        {w}{ecfg.font === "uthmani_v1" ? "" : " "}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
 
                               {activeTransliterations.map((src) => (
                                 <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
