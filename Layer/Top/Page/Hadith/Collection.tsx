@@ -14,12 +14,14 @@ const Collection = () => {
           <div key={collection.id} className="flex-1 min-w-[200px]">
             <Link to={`/Hadith/${collection.slug}`} className="block">
               <Card className="p-4 transition-all group">
-                <h3 className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
-                  {collection.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
-                  {collection.hadithCount.toLocaleString()} {t.hadith.hadith}
-                </p>
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                    {collection.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground whitespace-nowrap [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                    {collection.hadithCount.toLocaleString()} {t.hadith.hadith}
+                  </p>
+                </div>
               </Card>
             </Link>
           </div>

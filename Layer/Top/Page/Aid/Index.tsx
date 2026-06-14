@@ -19,6 +19,8 @@ const Aid = () => {
     { to: "/Aid/Namaz", label: "How to Pray Namaz" },
     { to: "/Aid/Feeling", label: "I am Feeling" },
     { to: "/Aid/Prophets", label: "25 Prophets" },
+    { to: "/Aid/Pillars", label: "5 Pillars of Islam" },
+    { to: "/Aid/Articles", label: "6 Articles of Faith" },
   ];
 
   return (

@@ -51,6 +51,10 @@ import Namaz              from "@/Top/Page/Aid/Namaz";
 import Feeling            from "@/Top/Page/Aid/Feeling";
 import ProphetsIndex      from "@/Top/Page/Aid/Prophets/Index";
 import ProphetDetail      from "@/Top/Page/Aid/Prophets/Detail";
+import PillarsIndex       from "@/Top/Page/Aid/Pillars/Index";
+import PillarDetail       from "@/Top/Page/Aid/Pillars/Detail";
+import ArticlesIndex      from "@/Top/Page/Aid/Articles/Index";
+import ArticleDetail      from "@/Top/Page/Aid/Articles/Detail";
 
 
 // General
@@ -132,6 +136,10 @@ const App = () => (
                   <Route path="/Aid/Feeling" element={<Feeling />} />
                   <Route path="/Aid/Prophets" element={<ProphetsIndex />} />
                   <Route path="/Aid/Prophets/:name" element={<ProphetDetail />} />
+                  <Route path="/Aid/Pillars" element={<PillarsIndex />} />
+                  <Route path="/Aid/Pillars/:id" element={<PillarDetail />} />
+                  <Route path="/Aid/Articles" element={<ArticlesIndex />} />
+                  <Route path="/Aid/Articles/:id" element={<ArticleDetail />} />
 
 
                   {/* General */}
