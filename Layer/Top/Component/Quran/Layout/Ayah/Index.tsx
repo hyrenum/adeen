@@ -50,6 +50,7 @@ export function AyahView({
           onRenderClick={onRenderClick ? () => onRenderClick(verse.verseNumber) : undefined}
           hoverTransliteration={hoverTransliteration}
           inlineTransliteration={inlineTransliteration}
+          inlineTranslation={inlineTranslation}
         />
       ))}
     </div>
