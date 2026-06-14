@@ -299,11 +299,11 @@ export function RenderSurahDialog({
   const totalWords = useMemo(() => verses.reduce((a, v) => a + v.words.length, 0), [verses]);
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    if (!open || totalWords === 0 || mode !== "render") return;
+    if (!open || totalWords === 0 || mode !== "render" || rendering) return;
     setTick(0);
     const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
     return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode]);
+  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode, rendering]);
 
   const currentVerseIdx = useMemo(() => {
     let count = 0;
