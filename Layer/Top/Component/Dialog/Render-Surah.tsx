@@ -628,7 +628,7 @@ export function RenderSurahDialog({
                       )}
                       <div className="absolute inset-0 bg-black/30" />
 
-                      <div className={cn("absolute text-white/90 text-xs font-medium px-2 py-1 rounded bg-black/30", cornerCls[ourLogoCorner])}>
+                      <div className={cn("absolute text-white text-xs font-medium", cornerCls[ourLogoCorner])}>
                         Al-Din.org
                       </div>
                       {cfg.logoUrl && (
