@@ -417,7 +417,7 @@ export function RenderSurahDialog({
             {!fullscreen && (
               <div className="space-y-3">
                 {/* Output */}
-                <Container className="!px-4 !py-3">
+                <Box>
                   <SectionTitle>Output</SectionTitle>
                   {mode === "render" && (
                     <>
@@ -482,11 +482,11 @@ export function RenderSurahDialog({
                       </SelectContent>
                     </Select>
                   </Row>
-                </Container>
+                </Box>
 
                 {/* Background (render only) */}
                 {mode === "render" && (
-                  <Container className="!px-4 !py-3">
+                  <Box>
                     <SectionTitle>Background</SectionTitle>
                     <Row label="Color">
                       <input type="color" value={cfg.bgColor}
@@ -499,11 +499,11 @@ export function RenderSurahDialog({
                     <Row label="Video">
                       <Input type="file" accept="video/*" onChange={onFile("bgUrl", "video")} className="text-xs" />
                     </Row>
-                  </Container>
+                  </Box>
                 )}
 
                 {/* Container styling */}
-                <Container className="!px-4 !py-3">
+                <Box>
                   <SectionTitle>Container</SectionTitle>
                   {mode === "embed" && (
                     <>
@@ -530,11 +530,11 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, borderWidth: v }))} />
                   <SliderRow label="Border Radius" value={cfg.borderRadius} min={0} max={64}
                     onChange={(v) => setCfg((c) => ({ ...c, borderRadius: v }))} />
-                </Container>
+                </Box>
 
 
                 {/* Colors */}
-                <Container className="!px-4 !py-3">
+                <Box>
                   <SectionTitle>Colors</SectionTitle>
                   <ToggleRow label="Auto contrast" value={cfg.autoContrast}
                     onChange={(v) => setCfg((c) => ({ ...c, autoContrast: v }))} />
@@ -546,12 +546,12 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, transliterationColor: v }))} />
                   <ColorRow label="Highlight" value={cfg.highlightColor}
                     onChange={(v) => setCfg((c) => ({ ...c, highlightColor: v }))} />
-                </Container>
+                </Box>
 
                 {/* Render-only: Intro/Outro + Logo */}
                 {mode === "render" && (
                   <>
-                    <Container className="!px-4 !py-3">
+                    <Box>
                       <SectionTitle>Intro / Outro</SectionTitle>
                       <ToggleRow label="Add Intro" value={cfg.addIntro}
                         onChange={(v) => setCfg((c) => ({ ...c, addIntro: v }))} />
@@ -565,9 +565,9 @@ export function RenderSurahDialog({
                         <Input value={cfg.outroText} onChange={(e) => setCfg((c) => ({ ...c, outroText: e.target.value }))}
                           placeholder="Outro text" className="text-xs mt-1" />
                       )}
-                    </Container>
+                    </Box>
 
-                    <Container className="!px-4 !py-3">
+                    <Box>
                       <SectionTitle>Logo</SectionTitle>
                       <Row label="Upload">
                         <Input type="file" accept="image/*" onChange={onFile("logoUrl")} className="text-xs" />
@@ -583,13 +583,13 @@ export function RenderSurahDialog({
                           </SelectContent>
                         </Select>
                       </Row>
-                    </Container>
+                    </Box>
                   </>
                 )}
 
                 {/* Embed-only options */}
                 {mode === "embed" && (
-                  <Container className="!px-4 !py-3">
+                  <Box>
                     <SectionTitle>Embed Options</SectionTitle>
                     <ToggleRow label="Audio Playback" value={cfg.audioPlayback}
                       onChange={(v) => setCfg((c) => ({ ...c, audioPlayback: v }))} />
@@ -601,7 +601,7 @@ export function RenderSurahDialog({
                       onChange={(v) => setCfg((c) => ({ ...c, showShare: v }))} />
                     <ToggleRow label="Hover Tooltip" value={cfg.hoverTooltip}
                       onChange={(v) => setCfg((c) => ({ ...c, hoverTooltip: v }))} />
-                  </Container>
+                  </Box>
                 )}
 
                 {mode === "render" ? (
@@ -649,7 +649,7 @@ export function RenderSurahDialog({
                       <div className="absolute inset-0 bg-black/30" />
 
                       <div className={cn("absolute text-white/90 text-xs font-medium px-2 py-1 rounded bg-black/30", cornerCls[ourLogoCorner])}>
-                        Al-Deen.org
+                        Al-Din.org
                       </div>
                       {cfg.logoUrl && (
                         <img src={cfg.logoUrl} alt="logo"
@@ -757,7 +757,7 @@ export function RenderSurahDialog({
 
 
               {mode === "embed" && (
-                <Container className="!px-4 !py-3">
+                <Box>
                   <div className="flex items-center justify-between mb-2">
                     <SectionTitle>Embed Snippet</SectionTitle>
                     <Button size="sm" variant="outline" className="gap-1"
@@ -768,7 +768,7 @@ export function RenderSurahDialog({
                   <pre className="text-xs bg-muted/50 rounded p-3 overflow-auto whitespace-pre-wrap break-all">
 {embedSnippet}
                   </pre>
-                </Container>
+                </Box>
               )}
             </div>
           </div>
@@ -1001,7 +1001,7 @@ async function renderToWebm(args: {
     ctx.font = "bold 28px sans-serif";
     ctx.textBaseline = "top";
     ctx.textAlign = logoImg ? "left" : "right";
-    ctx.fillText("Al-Deen.org", logoImg ? 40 : W - 40, 40);
+    ctx.fillText("Al-Din.org", logoImg ? 40 : W - 40, 40);
 
     if (t < introSec && cfg.addIntro) {
       ctx.fillStyle = "#fff";
