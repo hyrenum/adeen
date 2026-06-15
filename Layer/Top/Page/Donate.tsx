@@ -5,8 +5,9 @@ import { Button } from "@/Top/Component/UI/Button";
 import { Input } from "@/Top/Component/UI/Input";
 import { SlidingPill } from "@/Top/Component/UI/Sliding-Pill";
 import { Dropdown } from "@/Top/Component/UI/Dropdown";
-import { Heart, HandHeart, Sprout, Repeat, Loader2 } from "lucide-react";
+import { Heart, HandHeart, Sprout, Repeat } from "lucide-react";
 import { toast } from "@/Middle/Hook/Use-Toast";
+import { DonateProviderModal } from "@/Top/Component/Dialog/Donate-Provider";
 
 type Frequency = "one_time" | "daily" | "weekly" | "monthly" | "yearly";
 type DonationType = "general" | "zakat" | "sadaqah" | "sadaqah_jariya";
@@ -26,15 +27,13 @@ const DONATION_TYPES: { id: DonationType; label: string; icon: React.ReactNode; 
   { id: "sadaqah_jariya", label: "Sadaqah Jariya", icon: <Sprout className="h-4 w-4" />, desc: "Ongoing charity with lasting reward." },
 ];
 
-const PRESETS = [10, 25, 50, 100, 250];
-
 export default function Donate() {
   const [mode, setMode] = useState<"once" | "recurring">("once");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [type, setType] = useState<DonationType>("general");
   const [currency, setCurrency] = useState<string>("USD");
   const [amount, setAmount] = useState<string>("25");
-  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const effectiveFreq: Frequency = mode === "once" ? "one_time" : frequency;
   const currencySymbol = useMemo(
@@ -42,20 +41,13 @@ export default function Donate() {
     [currency],
   );
 
-  const donate = async () => {
+  const onDonate = () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) {
       toast({ title: "Enter an amount", description: "Please enter a valid donation amount.", variant: "destructive" });
       return;
     }
-    setLoading(true);
-    // Prototype gateway — real Stripe checkout will be wired once Lovable Cloud is enabled.
-    await new Promise((r) => setTimeout(r, 900));
-    setLoading(false);
-    toast({
-      title: "Thank you 🤍",
-      description: `${type.replace("_", " ")} • ${currency} ${amt.toFixed(2)} • ${effectiveFreq.replace("_", " ")}`,
-    });
+    setModalOpen(true);
   };
 
   return (
@@ -142,31 +134,13 @@ export default function Donate() {
               </div>
             </div>
 
-            {/* Quick presets */}
-            <div className="flex flex-wrap gap-2 justify-center">
-              {PRESETS.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setAmount(String(p))}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                    amount === String(p)
-                      ? "bg-foreground text-background border-foreground"
-                      : "border-border/40 hover:border-foreground/40"
-                  }`}
-                >
-                  {currencySymbol}{p}
-                </button>
-              ))}
-            </div>
-
             <Button
-              onClick={donate}
-              disabled={loading}
+              onClick={onDonate}
               className="w-full font-bold uppercase tracking-widest text-[10px] h-12"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Heart className="h-4 w-4 mr-2" />}
-              {loading ? "Processing…" : (effectiveFreq === "one_time" ? "Donate Now" : "Donate Recurring")}
-              {!loading && effectiveFreq !== "one_time" && <Repeat className="inline h-3 w-3 ml-2" />}
+              <Heart className="h-4 w-4 mr-2" />
+              {effectiveFreq === "one_time" ? "Donate Now" : "Donate Recurring"}
+              {effectiveFreq !== "one_time" && <Repeat className="inline h-3 w-3 ml-2" />}
             </Button>
           </Container>
 
@@ -175,6 +149,16 @@ export default function Donate() {
           </p>
         </div>
       </section>
+
+      <DonateProviderModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        amount={parseFloat(amount) || 0}
+        currency={currency}
+        frequency={effectiveFreq}
+        type={type}
+      />
     </Layout>
   );
 }
+
