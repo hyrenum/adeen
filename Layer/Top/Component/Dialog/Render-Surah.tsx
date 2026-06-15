@@ -659,7 +659,8 @@ export function RenderSurahDialog({
 
                         return (
                           <div className="absolute inset-0 flex items-center justify-center p-6">
-                            <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
+                            <div className="w-full max-w-3xl px-6 py-6">
+
                               {(() => {
                                 const hasInlineTr = !!v.wbwTranslationInline?.length;
                                 const hasInlineTl = !!v.wbwTransliterationInline?.length;
