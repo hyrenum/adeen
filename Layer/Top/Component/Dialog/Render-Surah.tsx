@@ -420,14 +420,6 @@ export function RenderSurahDialog({
 
   if (!open) return null;
 
-  // Container preview style
-  const containerStyle: React.CSSProperties = {
-    background: cfg.containerBgKind === "image" && cfg.containerBgUrl
-      ? `center/cover no-repeat url("${cfg.containerBgUrl}")`
-      : cfg.containerBg,
-    border: `${cfg.borderWidth}px solid ${cfg.borderColor}`,
-    borderRadius: cfg.borderRadius,
-  };
 
   return (
     <div className="fixed inset-0 z-40 bg-background">
