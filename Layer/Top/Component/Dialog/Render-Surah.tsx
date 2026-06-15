@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/Top/Component/UI/Button";
 import { Input } from "@/Top/Component/UI/Input";
 import { Label } from "@/Top/Component/UI/Label";
-import { Container } from "@/Top/Component/UI/Container";
+// Container removed — sidebar uses local Box component below.
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/Top/Component/UI/Select";
@@ -368,42 +368,58 @@ export function RenderSurahDialog({
     return `<iframe src="${url}" width="${cfg.width}" height="${cfg.height}" style="border:0;border-radius:12px" allow="autoplay" loading="lazy"></iframe>`;
   }, [cfg]);
 
+  // ---- Result state ----
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultExt, setResultExt] = useState<string>("webm");
+  const [resultSize, setResultSize] = useState<number>(0);
+  const [progress, setProgress] = useState(0);
+  const cancelRef = useRef(false);
+  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+
   // ---- Real render: capture preview DOM frame-by-frame via html-to-image ----
   const handleRender = useCallback(async () => {
     if (rendering) return;
     const node = previewWrapRef.current;
     if (!node) { toast({ title: "Preview not ready", variant: "destructive" }); return; }
+    const rect = node.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) { toast({ title: "Preview not ready — open dialog wider", variant: "destructive" }); return; }
+    if (resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); }
+    cancelRef.current = false;
     setRendering(true);
+    setProgress(0);
     try {
-      await renderPreviewDomToVideo({
+      const { blob, ext } = await renderPreviewDomToVideo({
         node,
-        totalWords,
+        totalWords: Math.max(1, totalWords),
         perWordMs: 600,
         fps: 24,
         format: cfg.exportFormat,
         targetSize: previewSize,
         setTick,
-        fileName: `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}`,
+        onProgress: setProgress,
+        shouldCancel: () => cancelRef.current,
       });
-      toast({ title: "Video downloaded", description: `Saved as .${cfg.exportFormat} to your downloads.` });
+      const url = URL.createObjectURL(blob);
+      setResultUrl(url);
+      setResultExt(ext);
+      setResultSize(blob.size);
+      // auto-download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast({ title: "Video ready", description: `Saved as .${ext} (${(blob.size/1024/1024).toFixed(1)} MB).` });
     } catch (err) {
       console.error(err);
       toast({ title: "Render failed", description: String((err as Error)?.message || err), variant: "destructive" });
     } finally {
       setRendering(false);
     }
-  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize]);
+  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize, resultUrl]);
+
 
   if (!open) return null;
 
-  // Container preview style
-  const containerStyle: React.CSSProperties = {
-    background: cfg.containerBgKind === "image" && cfg.containerBgUrl
-      ? `center/cover no-repeat url("${cfg.containerBgUrl}")`
-      : cfg.containerBg,
-    border: `${cfg.borderWidth}px solid ${cfg.borderColor}`,
-    borderRadius: cfg.borderRadius,
-  };
 
   return (
     <div className="fixed inset-0 z-40 bg-background">
@@ -417,7 +433,7 @@ export function RenderSurahDialog({
             {!fullscreen && (
               <div className="space-y-3">
                 {/* Output */}
-                <Container className="!px-4 !py-3">
+                <Box>
                   <SectionTitle>Output</SectionTitle>
                   {mode === "render" && (
                     <>
@@ -482,11 +498,11 @@ export function RenderSurahDialog({
                       </SelectContent>
                     </Select>
                   </Row>
-                </Container>
+                </Box>
 
                 {/* Background (render only) */}
                 {mode === "render" && (
-                  <Container className="!px-4 !py-3">
+                  <Box>
                     <SectionTitle>Background</SectionTitle>
                     <Row label="Color">
                       <input type="color" value={cfg.bgColor}
@@ -499,42 +515,22 @@ export function RenderSurahDialog({
                     <Row label="Video">
                       <Input type="file" accept="video/*" onChange={onFile("bgUrl", "video")} className="text-xs" />
                     </Row>
-                  </Container>
+                  </Box>
                 )}
 
-                {/* Container styling */}
-                <Container className="!px-4 !py-3">
-                  <SectionTitle>Container</SectionTitle>
-                  {mode === "embed" && (
-                    <>
-                      <Row label="Width"><Input type="number" value={cfg.width}
-                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                      <Row label="Height"><Input type="number" value={cfg.height}
-                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                    </>
-                  )}
-                  <Row label="Background">
-                    <input type="color" value={cfg.containerBg}
-                      onChange={(e) => setCfg((c) => ({ ...c, containerBg: e.target.value, containerBgKind: "color" }))}
-                      className="h-8 w-full rounded" />
-                  </Row>
-                  <Row label="Image">
-                    <Input type="file" accept="image/*" onChange={onFile("containerBgUrl")} className="text-xs" />
-                  </Row>
-                  <Row label="Border">
-                    <input type="color" value={cfg.borderColor}
-                      onChange={(e) => setCfg((c) => ({ ...c, borderColor: e.target.value }))}
-                      className="h-8 w-full rounded" />
-                  </Row>
-                  <SliderRow label="Border Width" value={cfg.borderWidth} min={0} max={12}
-                    onChange={(v) => setCfg((c) => ({ ...c, borderWidth: v }))} />
-                  <SliderRow label="Border Radius" value={cfg.borderRadius} min={0} max={64}
-                    onChange={(v) => setCfg((c) => ({ ...c, borderRadius: v }))} />
-                </Container>
+                {mode === "embed" && (
+                  <Box>
+                    <SectionTitle>Size</SectionTitle>
+                    <Row label="Width"><Input type="number" value={cfg.width}
+                      onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                    <Row label="Height"><Input type="number" value={cfg.height}
+                      onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                  </Box>
+                )}
 
 
                 {/* Colors */}
-                <Container className="!px-4 !py-3">
+                <Box>
                   <SectionTitle>Colors</SectionTitle>
                   <ToggleRow label="Auto contrast" value={cfg.autoContrast}
                     onChange={(v) => setCfg((c) => ({ ...c, autoContrast: v }))} />
@@ -546,12 +542,12 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, transliterationColor: v }))} />
                   <ColorRow label="Highlight" value={cfg.highlightColor}
                     onChange={(v) => setCfg((c) => ({ ...c, highlightColor: v }))} />
-                </Container>
+                </Box>
 
                 {/* Render-only: Intro/Outro + Logo */}
                 {mode === "render" && (
                   <>
-                    <Container className="!px-4 !py-3">
+                    <Box>
                       <SectionTitle>Intro / Outro</SectionTitle>
                       <ToggleRow label="Add Intro" value={cfg.addIntro}
                         onChange={(v) => setCfg((c) => ({ ...c, addIntro: v }))} />
@@ -565,9 +561,9 @@ export function RenderSurahDialog({
                         <Input value={cfg.outroText} onChange={(e) => setCfg((c) => ({ ...c, outroText: e.target.value }))}
                           placeholder="Outro text" className="text-xs mt-1" />
                       )}
-                    </Container>
+                    </Box>
 
-                    <Container className="!px-4 !py-3">
+                    <Box>
                       <SectionTitle>Logo</SectionTitle>
                       <Row label="Upload">
                         <Input type="file" accept="image/*" onChange={onFile("logoUrl")} className="text-xs" />
@@ -583,13 +579,13 @@ export function RenderSurahDialog({
                           </SelectContent>
                         </Select>
                       </Row>
-                    </Container>
+                    </Box>
                   </>
                 )}
 
                 {/* Embed-only options */}
                 {mode === "embed" && (
-                  <Container className="!px-4 !py-3">
+                  <Box>
                     <SectionTitle>Embed Options</SectionTitle>
                     <ToggleRow label="Audio Playback" value={cfg.audioPlayback}
                       onChange={(v) => setCfg((c) => ({ ...c, audioPlayback: v }))} />
@@ -601,14 +597,39 @@ export function RenderSurahDialog({
                       onChange={(v) => setCfg((c) => ({ ...c, showShare: v }))} />
                     <ToggleRow label="Hover Tooltip" value={cfg.hoverTooltip}
                       onChange={(v) => setCfg((c) => ({ ...c, hoverTooltip: v }))} />
-                  </Container>
+                  </Box>
                 )}
 
                 {mode === "render" ? (
-                  <Button className="w-full gap-2" onClick={handleRender} disabled={rendering}>
-                    {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {rendering ? "Rendering…" : "Render & Download"}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button className="w-full gap-2" onClick={handleRender} disabled={rendering}>
+                      {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      {rendering ? `Rendering… ${Math.round(progress * 100)}%` : "Render & Download"}
+                    </Button>
+                    {rendering && (
+                      <>
+                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-foreground transition-all" style={{ width: `${progress * 100}%` }} />
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full" onClick={() => { cancelRef.current = true; }}>
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                    {resultUrl && !rendering && (
+                      <div className="space-y-2 pt-2 border-t border-border/30">
+                        <video src={resultUrl} controls className="w-full rounded-lg bg-black" />
+                        <div className="text-xs text-muted-foreground text-center">
+                          {(resultSize / 1024 / 1024).toFixed(1)} MB • .{resultExt}
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => {
+                          const a = document.createElement("a");
+                          a.href = resultUrl; a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${resultExt}`;
+                          document.body.appendChild(a); a.click(); a.remove();
+                        }}><Download className="h-3 w-3" /> Download again</Button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <Button className="w-full gap-2" onClick={() => {
                     navigator.clipboard?.writeText(embedSnippet);
@@ -648,8 +669,8 @@ export function RenderSurahDialog({
                       )}
                       <div className="absolute inset-0 bg-black/30" />
 
-                      <div className={cn("absolute text-white/90 text-xs font-medium px-2 py-1 rounded bg-black/30", cornerCls[ourLogoCorner])}>
-                        Al-Deen.org
+                      <div className={cn("absolute text-white text-xs font-medium", cornerCls[ourLogoCorner])}>
+                        Al-Din.org
                       </div>
                       {cfg.logoUrl && (
                         <img src={cfg.logoUrl} alt="logo"
@@ -679,7 +700,8 @@ export function RenderSurahDialog({
 
                         return (
                           <div className="absolute inset-0 flex items-center justify-center p-6">
-                            <div className="w-full max-w-3xl px-6 py-6" style={containerStyle}>
+                            <div className="w-full max-w-3xl px-6 py-6">
+
                               {(() => {
                                 const hasInlineTr = !!v.wbwTranslationInline?.length;
                                 const hasInlineTl = !!v.wbwTransliterationInline?.length;
@@ -757,7 +779,7 @@ export function RenderSurahDialog({
 
 
               {mode === "embed" && (
-                <Container className="!px-4 !py-3">
+                <Box>
                   <div className="flex items-center justify-between mb-2">
                     <SectionTitle>Embed Snippet</SectionTitle>
                     <Button size="sm" variant="outline" className="gap-1"
@@ -768,7 +790,7 @@ export function RenderSurahDialog({
                   <pre className="text-xs bg-muted/50 rounded p-3 overflow-auto whitespace-pre-wrap break-all">
 {embedSnippet}
                   </pre>
-                </Container>
+                </Box>
               )}
             </div>
           </div>
@@ -779,6 +801,9 @@ export function RenderSurahDialog({
 }
 
 // ====================== Sub-bits ======================
+function Box({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("py-3", className)}>{children}</div>;
+}
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{children}</div>;
 }
@@ -1001,7 +1026,7 @@ async function renderToWebm(args: {
     ctx.font = "bold 28px sans-serif";
     ctx.textBaseline = "top";
     ctx.textAlign = logoImg ? "left" : "right";
-    ctx.fillText("Al-Deen.org", logoImg ? 40 : W - 40, 40);
+    ctx.fillText("Al-Din.org", logoImg ? 40 : W - 40, 40);
 
     if (t < introSec && cfg.addIntro) {
       ctx.fillStyle = "#fff";
@@ -1168,16 +1193,23 @@ async function renderPreviewDomToVideo(args: {
   format: "webm" | "mp4";
   targetSize: { w: number; h: number };
   setTick: (n: number) => void;
-  fileName: string;
-}): Promise<void> {
-  const { node, totalWords, perWordMs, fps, format, targetSize, setTick, fileName } = args;
+  onProgress?: (p: number) => void;
+  shouldCancel?: () => boolean;
+}): Promise<{ blob: Blob; ext: string }> {
+  const { node, totalWords, perWordMs, fps, format, targetSize, setTick, onProgress, shouldCancel } = args;
   if (totalWords <= 0) throw new Error("No content to render");
 
+  const rect = node.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) throw new Error("Preview has zero size");
+
   const out = document.createElement("canvas");
-  out.width = targetSize.w;
-  out.height = targetSize.h;
+  out.width = Math.max(2, targetSize.w);
+  out.height = Math.max(2, targetSize.h);
   const ctx = out.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
+  // Pre-paint so the stream has a valid initial frame
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, out.width, out.height);
 
   const stream = out.captureStream(fps);
   const wantMp4 = format === "mp4";
@@ -1188,57 +1220,69 @@ async function renderPreviewDomToVideo(args: {
   const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
 
   const chunks: BlobPart[] = [];
-  const rec = new MediaRecorder(stream, { mimeType: mime });
-  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-  const done = new Promise<Blob>((resolve) => {
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const done = new Promise<Blob>((resolve, reject) => {
     rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
+    rec.onerror = (e) => reject(new Error("Recorder error: " + (e as any)?.error?.message || "unknown"));
   });
 
-  rec.start();
+  rec.start(250); // flush chunks every 250ms
 
   const framesPerWord = Math.max(1, Math.round((perWordMs / 1000) * fps));
   const totalFrames = totalWords * framesPerWord;
 
-  // pixelRatio scales captured node to fill target canvas height
-  const nodeRect = node.getBoundingClientRect();
-  const pixelRatio = Math.max(1, targetSize.h / Math.max(1, nodeRect.height));
+  // Use measured node size; html-to-image picks up CSS dimensions from the node
+  const pixelRatio = Math.max(1, Math.min(2, targetSize.h / Math.max(1, rect.height)));
 
   let lastTick = -1;
-  for (let f = 0; f < totalFrames; f++) {
-    const tick = Math.floor(f / framesPerWord) % totalWords;
-    if (tick !== lastTick) {
-      setTick(tick);
-      lastTick = tick;
-      // allow React to commit + paint
-      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-    }
-    try {
-      const snap = await htiToCanvas(node, { pixelRatio, cacheBust: true, skipFonts: false });
-      // Cover-fit snap into target
-      const sw = snap.width, sh = snap.height;
-      const sAR = sw / sh, tAR = targetSize.w / targetSize.h;
-      let dw = targetSize.w, dh = targetSize.h, dx = 0, dy = 0;
-      if (sAR > tAR) {
-        // snap wider — fit height
-        dh = targetSize.h; dw = sAR * dh; dx = (targetSize.w - dw) / 2;
-      } else {
-        dw = targetSize.w; dh = dw / sAR; dy = (targetSize.h - dh) / 2;
+  let lastSnap: HTMLCanvasElement | null = null;
+
+  try {
+    for (let f = 0; f < totalFrames; f++) {
+      if (shouldCancel?.()) break;
+      const tick = Math.floor(f / framesPerWord) % totalWords;
+      if (tick !== lastTick) {
+        setTick(tick);
+        lastTick = tick;
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
       }
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, targetSize.w, targetSize.h);
-      ctx.drawImage(snap, dx, dy, dw, dh);
-    } catch (err) {
-      console.warn("Frame capture failed", err);
+
+      // Capture (with guard + retry); on failure reuse last good frame
+      let snap: HTMLCanvasElement | null = null;
+      for (let attempt = 0; attempt < 2 && !snap; attempt++) {
+        try {
+          const r = node.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) {
+            await new Promise<void>((res) => requestAnimationFrame(() => res()));
+            continue;
+          }
+          const c = await htiToCanvas(node, { pixelRatio, cacheBust: false, skipFonts: false });
+          if (c.width >= 2 && c.height >= 2) snap = c;
+        } catch (err) {
+          // swallow; will fall back to lastSnap
+        }
+      }
+      const useSnap = snap || lastSnap;
+      if (useSnap) {
+        lastSnap = useSnap;
+        const sw = useSnap.width, sh = useSnap.height;
+        const sAR = sw / sh, tAR = out.width / out.height;
+        let dw = out.width, dh = out.height, dx = 0, dy = 0;
+        if (sAR > tAR) { dh = out.height; dw = sAR * dh; dx = (out.width - dw) / 2; }
+        else { dw = out.width; dh = dw / sAR; dy = (out.height - dh) / 2; }
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, out.width, out.height);
+        ctx.drawImage(useSnap, dx, dy, dw, dh);
+      }
+      onProgress?.((f + 1) / totalFrames);
+      await new Promise((r) => setTimeout(r, 1000 / fps));
     }
-    await new Promise((r) => setTimeout(r, 1000 / fps));
+  } finally {
+    if (rec.state !== "inactive") rec.stop();
   }
 
-  rec.stop();
   const blob = await done;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${fileName}.${ext}`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  if (!blob.size) throw new Error("Recorded video is empty — try a smaller range or different format");
+  return { blob, ext };
 }
