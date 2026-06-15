@@ -502,35 +502,15 @@ export function RenderSurahDialog({
                   </Box>
                 )}
 
-                {/* Container styling */}
-                <Box>
-                  <SectionTitle>Container</SectionTitle>
-                  {mode === "embed" && (
-                    <>
-                      <Row label="Width"><Input type="number" value={cfg.width}
-                        onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                      <Row label="Height"><Input type="number" value={cfg.height}
-                        onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
-                    </>
-                  )}
-                  <Row label="Background">
-                    <input type="color" value={cfg.containerBg}
-                      onChange={(e) => setCfg((c) => ({ ...c, containerBg: e.target.value, containerBgKind: "color" }))}
-                      className="h-8 w-full rounded" />
-                  </Row>
-                  <Row label="Image">
-                    <Input type="file" accept="image/*" onChange={onFile("containerBgUrl")} className="text-xs" />
-                  </Row>
-                  <Row label="Border">
-                    <input type="color" value={cfg.borderColor}
-                      onChange={(e) => setCfg((c) => ({ ...c, borderColor: e.target.value }))}
-                      className="h-8 w-full rounded" />
-                  </Row>
-                  <SliderRow label="Border Width" value={cfg.borderWidth} min={0} max={12}
-                    onChange={(v) => setCfg((c) => ({ ...c, borderWidth: v }))} />
-                  <SliderRow label="Border Radius" value={cfg.borderRadius} min={0} max={64}
-                    onChange={(v) => setCfg((c) => ({ ...c, borderRadius: v }))} />
-                </Box>
+                {mode === "embed" && (
+                  <Box>
+                    <SectionTitle>Size</SectionTitle>
+                    <Row label="Width"><Input type="number" value={cfg.width}
+                      onChange={(e) => setCfg((c) => ({ ...c, width: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                    <Row label="Height"><Input type="number" value={cfg.height}
+                      onChange={(e) => setCfg((c) => ({ ...c, height: Math.max(120, parseInt(e.target.value || "0") || 0) }))} /></Row>
+                  </Box>
+                )}
 
 
                 {/* Colors */}
