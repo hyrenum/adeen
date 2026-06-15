@@ -49,8 +49,12 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,json}"],
-        navigateFallbackDenylist: [/^\/~oauth/],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB for large font files
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /\.[^/]+$/],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB for large font files
         runtimeCaching: [
           {
             // Quran JSON data files — cache forever, they rarely change
