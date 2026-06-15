@@ -368,31 +368,55 @@ export function RenderSurahDialog({
     return `<iframe src="${url}" width="${cfg.width}" height="${cfg.height}" style="border:0;border-radius:12px" allow="autoplay" loading="lazy"></iframe>`;
   }, [cfg]);
 
+  // ---- Result state ----
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultExt, setResultExt] = useState<string>("webm");
+  const [resultSize, setResultSize] = useState<number>(0);
+  const [progress, setProgress] = useState(0);
+  const cancelRef = useRef(false);
+  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+
   // ---- Real render: capture preview DOM frame-by-frame via html-to-image ----
   const handleRender = useCallback(async () => {
     if (rendering) return;
     const node = previewWrapRef.current;
     if (!node) { toast({ title: "Preview not ready", variant: "destructive" }); return; }
+    const rect = node.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) { toast({ title: "Preview not ready — open dialog wider", variant: "destructive" }); return; }
+    if (resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); }
+    cancelRef.current = false;
     setRendering(true);
+    setProgress(0);
     try {
-      await renderPreviewDomToVideo({
+      const { blob, ext } = await renderPreviewDomToVideo({
         node,
-        totalWords,
+        totalWords: Math.max(1, totalWords),
         perWordMs: 600,
         fps: 24,
         format: cfg.exportFormat,
         targetSize: previewSize,
         setTick,
-        fileName: `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}`,
+        onProgress: setProgress,
+        shouldCancel: () => cancelRef.current,
       });
-      toast({ title: "Video downloaded", description: `Saved as .${cfg.exportFormat} to your downloads.` });
+      const url = URL.createObjectURL(blob);
+      setResultUrl(url);
+      setResultExt(ext);
+      setResultSize(blob.size);
+      // auto-download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast({ title: "Video ready", description: `Saved as .${ext} (${(blob.size/1024/1024).toFixed(1)} MB).` });
     } catch (err) {
       console.error(err);
       toast({ title: "Render failed", description: String((err as Error)?.message || err), variant: "destructive" });
     } finally {
       setRendering(false);
     }
-  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize]);
+  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize, resultUrl]);
+
 
   if (!open) return null;
 
