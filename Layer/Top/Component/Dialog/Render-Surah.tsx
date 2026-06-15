@@ -609,10 +609,35 @@ export function RenderSurahDialog({
                 )}
 
                 {mode === "render" ? (
-                  <Button className="w-full gap-2" onClick={handleRender} disabled={rendering}>
-                    {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {rendering ? "Rendering…" : "Render & Download"}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button className="w-full gap-2" onClick={handleRender} disabled={rendering}>
+                      {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      {rendering ? `Rendering… ${Math.round(progress * 100)}%` : "Render & Download"}
+                    </Button>
+                    {rendering && (
+                      <>
+                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-foreground transition-all" style={{ width: `${progress * 100}%` }} />
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full" onClick={() => { cancelRef.current = true; }}>
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                    {resultUrl && !rendering && (
+                      <div className="space-y-2 pt-2 border-t border-border/30">
+                        <video src={resultUrl} controls className="w-full rounded-lg bg-black" />
+                        <div className="text-xs text-muted-foreground text-center">
+                          {(resultSize / 1024 / 1024).toFixed(1)} MB • .{resultExt}
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => {
+                          const a = document.createElement("a");
+                          a.href = resultUrl; a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${resultExt}`;
+                          document.body.appendChild(a); a.click(); a.remove();
+                        }}><Download className="h-3 w-3" /> Download again</Button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <Button className="w-full gap-2" onClick={() => {
                     navigator.clipboard?.writeText(embedSnippet);
