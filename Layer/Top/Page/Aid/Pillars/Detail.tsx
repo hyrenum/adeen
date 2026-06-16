@@ -1,8 +1,6 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Layout } from "@/Top/Component/Layout/Index";
 import { Card } from "@/Top/Component/UI/Card";
-import { Button } from "@/Top/Component/UI/Button";
-import { ArrowLeft } from "lucide-react";
 import { PILLARS } from "./Index";
 
 type Section = { heading: string; body: string };
@@ -82,11 +80,6 @@ export default function PillarDetail() {
   return (
     <Layout>
       <div className="space-y-4">
-        <Link to="/Aid/Pillars">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back
-          </Button>
-        </Link>
         {!exists || !data ? (
           <Card className="p-6 text-center" hoverable={false}>Pillar not found.</Card>
         ) : (

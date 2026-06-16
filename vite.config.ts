@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       injectRegister: null,
       filename: "sw.js",
+      devOptions: { enabled: false },
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "Al Deen",
@@ -56,6 +57,14 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB for large font files
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-navigation-cache",
+              networkTimeoutSeconds: 3,
+            },
+          },
           {
             // Quran JSON data files — cache forever, they rarely change
             urlPattern: /\/Layer\/Bottom\/Data\/.+\.json$/i,

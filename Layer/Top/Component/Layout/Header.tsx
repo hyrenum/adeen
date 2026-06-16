@@ -1,7 +1,7 @@
 // Layer/Top/Component/Header.tsx
 import { memo, useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Settings, ArrowLeft, Search, Home, X, Heart, LogIn } from "lucide-react";
+import { Settings, ArrowLeft, Search, Home, X, Heart, LogIn, Download } from "lucide-react";
 import { useScrollDirection } from "@/Middle/Hook/Use-Scroll-Direction";
 import { useApp } from "@/Middle/Context/App";
 import { useAuth } from "@/Middle/Context/Auth";
@@ -19,6 +19,8 @@ import { Aid_Navigator, isAidPath } from "@/Top/Component/Aid/Navigator";
 import { navHistory, useNavHistoryTracker } from "@/Middle/Hook/Use-Nav-History";
 import { mobileSettingsStore } from "@/Top/Component/Settings/mobileSettingsStore";
 import { tryHandleBack } from "@/Middle/Hook/Use-Back-Handler";
+import { usePWAInstall } from "@/Middle/Hook/Use-PWA-Install";
+import { toast } from "@/Middle/Hook/Use-Toast";
 
 // Helper to extract and format page title from current path
 function getPageTitle(pathname: string): string {
@@ -45,6 +47,7 @@ export const Header = memo(function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { isInstalled, promptInstall } = usePWAInstall();
 
   // Track visited paths for de-duplicated back navigation
   useNavHistoryTracker();
@@ -206,6 +209,16 @@ export const Header = memo(function Header() {
     mobileSettingsStore.setSearchQuery(v);
   };
 
+  const handleInstall = async () => {
+    const installed = await promptInstall();
+    if (!installed) {
+      toast({
+        title: "Install Al-Din",
+        description: "Use your browser menu: Install app / Add to Home Screen.",
+      });
+    }
+  };
+
   const exitSettingsSearch = () => {
     mobileSettingsStore.exitSearchMode();
   };
@@ -346,6 +359,11 @@ export const Header = memo(function Header() {
             {!(isMobileSettingsOpen && settingsSearchActive) && (
               <Button onClick={handleSearchClick} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
                 <Search className="h-4 w-4" />
+              </Button>
+            )}
+            {!isInstalled && (
+              <Button onClick={handleInstall} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost" aria-label="Install app" title="Install app">
+                <Download className="h-4 w-4" />
               </Button>
             )}
             {!hideRightSettingsButtons && (

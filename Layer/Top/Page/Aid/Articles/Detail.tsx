@@ -1,8 +1,6 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Layout } from "@/Top/Component/Layout/Index";
 import { Card } from "@/Top/Component/UI/Card";
-import { Button } from "@/Top/Component/UI/Button";
-import { ArrowLeft } from "lucide-react";
 import { ARTICLES } from "./Index";
 
 type Section = { heading: string; body: string };
@@ -79,17 +77,16 @@ export default function ArticleDetail() {
   return (
     <Layout>
       <div className="space-y-4">
-        <Link to="/Aid/Articles">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back
-          </Button>
-        </Link>
         {!exists || !data ? (
           <Card className="p-6 text-center" hoverable={false}>Article not found.</Card>
         ) : (
           <>
             <Card className="p-5" hoverable={false}>
               <h1 className="text-2xl font-bold">{data.title}</h1>
+              <div className="mt-4 border-t border-border/40 pt-4">
+                <p className="font-semibold">Hadith Source</p>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{data.source}</p>
+              </div>
             </Card>
             {data.sections.map((s) => (
               <Card key={s.heading} className="p-5" hoverable={false}>
@@ -97,10 +94,6 @@ export default function ArticleDetail() {
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{s.body}</p>
               </Card>
             ))}
-            <Card className="p-5" hoverable={false}>
-              <p className="font-semibold">Hadith Source</p>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{data.source}</p>
-            </Card>
           </>
         )}
       </div>

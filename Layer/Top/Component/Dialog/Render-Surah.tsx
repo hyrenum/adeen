@@ -26,6 +26,7 @@ import { Maximize2, Minimize2, Plus, X, Copy, Download, Loader2 } from "lucide-r
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { useApp } from "@/Middle/Context/App";
 import { toCanvas as htiToCanvas } from "html-to-image";
+import fixWebmDuration from "fix-webm-duration";
 
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
@@ -391,8 +392,8 @@ export function RenderSurahDialog({
       const { blob, ext } = await renderPreviewDomToVideo({
         node,
         totalWords: Math.max(1, totalWords),
-        perWordMs: 600,
-        fps: 24,
+        perWordMs: 450,
+        fps: 8,
         format: cfg.exportFormat,
         targetSize: previewSize,
         setTick,
@@ -1220,7 +1221,7 @@ async function renderPreviewDomToVideo(args: {
   const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
 
   const chunks: BlobPart[] = [];
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_500_000 });
   rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   const done = new Promise<Blob>((resolve, reject) => {
     rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
@@ -1231,6 +1232,7 @@ async function renderPreviewDomToVideo(args: {
 
   const framesPerWord = Math.max(1, Math.round((perWordMs / 1000) * fps));
   const totalFrames = totalWords * framesPerWord;
+  const durationMs = totalFrames * (1000 / fps);
 
   // Use measured node size; html-to-image picks up CSS dimensions from the node
   const pixelRatio = Math.max(1, Math.min(2, targetSize.h / Math.max(1, rect.height)));
@@ -1242,15 +1244,17 @@ async function renderPreviewDomToVideo(args: {
     for (let f = 0; f < totalFrames; f++) {
       if (shouldCancel?.()) break;
       const tick = Math.floor(f / framesPerWord) % totalWords;
+      let snapNeedsRefresh = false;
       if (tick !== lastTick) {
         setTick(tick);
         lastTick = tick;
+        snapNeedsRefresh = true;
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
       }
 
-      // Capture (with guard + retry); on failure reuse last good frame
+      // Capture only when visible content changes; repeated frames reuse the last snapshot.
       let snap: HTMLCanvasElement | null = null;
-      for (let attempt = 0; attempt < 2 && !snap; attempt++) {
+      for (let attempt = 0; snapNeedsRefresh && attempt < 2 && !snap; attempt++) {
         try {
           const r = node.getBoundingClientRect();
           if (r.width < 2 || r.height < 2) {
@@ -1267,13 +1271,9 @@ async function renderPreviewDomToVideo(args: {
       if (useSnap) {
         lastSnap = useSnap;
         const sw = useSnap.width, sh = useSnap.height;
-        const sAR = sw / sh, tAR = out.width / out.height;
-        let dw = out.width, dh = out.height, dx = 0, dy = 0;
-        if (sAR > tAR) { dh = out.height; dw = sAR * dh; dx = (out.width - dw) / 2; }
-        else { dw = out.width; dh = dw / sAR; dy = (out.height - dh) / 2; }
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, out.width, out.height);
-        ctx.drawImage(useSnap, dx, dy, dw, dh);
+        ctx.drawImage(useSnap, 0, 0, sw, sh, 0, 0, out.width, out.height);
       }
       onProgress?.((f + 1) / totalFrames);
       await new Promise((r) => setTimeout(r, 1000 / fps));
@@ -1282,7 +1282,10 @@ async function renderPreviewDomToVideo(args: {
     if (rec.state !== "inactive") rec.stop();
   }
 
-  const blob = await done;
+  const rawBlob = await done;
+  const blob = ext === "webm"
+    ? await fixWebmDuration(rawBlob, durationMs, { logger: false }).catch(() => rawBlob)
+    : rawBlob;
   if (!blob.size) throw new Error("Recorded video is empty — try a smaller range or different format");
   return { blob, ext };
 }
