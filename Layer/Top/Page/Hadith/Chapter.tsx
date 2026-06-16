@@ -36,31 +36,24 @@ const Chapter = () => {
           <p className="text-muted-foreground">No chapters available yet.</p>
         </Card>
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {chapters.map((chapter, index) => (
             <Link
               key={chapter.id}
               to={`/Hadith/${collection.slug}/${chapter.id}`}
-              className="flex-1 min-w-[150px]"
             >
-              <Card className="p-4 text-center transition-all group">
-                <div className="flex flex-col items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="w-10 h-10 rounded-full p-0 flex items-center justify-center"
-                  >
+              <Card className="p-4 transition-all group">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                  <span className="text-xs text-muted-foreground [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
                     {index + 1}
-                  </Button>
-                  <p className="font-semibold text-sm [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                  </span>
+                  <p className="font-semibold text-sm truncate [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
                     {chapter.name}
                   </p>
                   {chapter.hadithRange && (
-                    <Button
-                      size="sm"
-                      className="px-2 py-0.5 text-xs rounded-full text-muted-foreground h-auto"
-                    >
-                      {chapter.hadithRange}
-                    </Button>
+                    <span className="text-xs text-muted-foreground text-right [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
+                      {chapter.hadithRange} Hadith
+                    </span>
                   )}
                 </div>
               </Card>
