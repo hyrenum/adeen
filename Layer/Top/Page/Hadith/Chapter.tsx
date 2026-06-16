@@ -1,7 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/Top/Component/Layout/Index";
 import { Card } from "@/Top/Component/UI/Card";
-import { Button } from "@/Top/Component/UI/Button";
 import { getCollection, getChaptersByCollection } from "@/Bottom/API/Hadith";
 import { useTranslation } from "@/Middle/Hook/Use-Translation";
 
