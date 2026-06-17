@@ -183,20 +183,12 @@ const Detail = () => {
       <div className="max-w-4xl mx-auto">
         {/* Single container with header + content */}
         <Container className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
-            <div>
-              <h1 className="text-2xl font-bold">
-                {collection.name} · Hadith {hadith.id}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <Container className="!py-1.5 !px-3 inline-flex w-auto max-w-full">
+              <h1 className="text-sm font-medium truncate">
+                {collection.name} - {chapter.name} - {hadith.id}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Chapter: {chapter.name}
-              </p>
-              {hadith.narrator && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Narrated by: <span className="font-medium">{hadith.narrator}</span>
-                </p>
-              )}
-            </div>
+            </Container>
             <div className="flex items-center gap-2 shrink-0">
               <Button size="sm" className="w-8 h-8 p-0" onClick={handleCopy}>
                 <Copy className="h-4 w-4" />
