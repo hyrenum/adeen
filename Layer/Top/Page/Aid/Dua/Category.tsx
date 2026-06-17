@@ -1,11 +1,17 @@
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/Top/Component/Layout/Index";
-import { Copy, Share2 } from "lucide-react";
+import { Copy, Share2, ChevronDown } from "lucide-react";
 import { getDuaCategory, type DuaItem } from "@/Bottom/API/Aid";
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { Button } from "@/Top/Component/UI/Button";
 import { Container } from "@/Top/Component/UI/Container";
 import { Tooltip } from "@/Top/Component/UI/Tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/Top/Component/UI/Dropdown-Menu";
 import { useApp } from "@/Middle/Context/App";
 import { useState } from "react";
 
@@ -69,7 +75,6 @@ const Dua_Category = () => {
   } = useApp();
 
   const [activeTooltip, setActiveTooltip] = useState<{ duaIndex: number; wordIndex: number } | null>(null);
-  const [expandedRefs, setExpandedRefs] = useState<Record<number, boolean>>({});
 
   const categoryName = categoryId ? formatNameFromId(categoryId) : "";
   const category = categoryName ? getDuaCategory(categoryName) : null;
@@ -126,25 +131,38 @@ const Dua_Category = () => {
     );
 
     const extras = dua.extraReferences ?? [];
-    const isExpanded = !!expandedRefs[index];
+    const allRefs = [dua.reference, ...extras];
+    const hasMultiple = allRefs.length > 1;
+
+    const ReferencePill = (
+      <Container className="!py-1 !px-3 inline-flex w-auto">
+        <ReferenceLink reference={dua.reference} />
+      </Container>
+    );
+
+    const ReferenceDropdown = (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" className="h-7 px-3 inline-flex items-center gap-1 text-xs">
+            Reference
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[220px]">
+          {allRefs.map((ref, i) => (
+            <DropdownMenuItem key={i} asChild className="text-xs">
+              <div className="w-full"><ReferenceLink reference={ref} /></div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
 
     const header = (
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {IndexBadge}
-          <ReferenceLink reference={dua.reference} />
-          {extras.length > 0 && (
-            <button
-              type="button"
-              onClick={() =>
-                setExpandedRefs((prev) => ({ ...prev, [index]: !prev[index] }))
-              }
-              className="text-xs text-muted-foreground hover:underline transition-colors"
-              aria-expanded={isExpanded}
-            >
-              {isExpanded ? "less" : `+${extras.length} more`}
-            </button>
-          )}
+          {hasMultiple ? ReferenceDropdown : ReferencePill}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleCopy(dua, index)}>
@@ -157,14 +175,7 @@ const Dua_Category = () => {
       </div>
     );
 
-    const extraRefsRow =
-      extras.length > 0 && isExpanded ? (
-        <div className="flex flex-wrap gap-2 pl-9">
-          {extras.map((ref, i) => (
-            <ReferenceLink key={i} reference={ref} />
-          ))}
-        </div>
-      ) : null;
+    const extraRefsRow = null;
 
     // No word‑by‑word data → simple display (no tooltips)
     if (!hasWbw && !hasTransliterationArray) {
