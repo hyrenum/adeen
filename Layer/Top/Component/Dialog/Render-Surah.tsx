@@ -65,9 +65,9 @@ interface Config {
   logoCorner: Corner;
 
   addIntro: boolean;
-  introText: string;
+  introUrl: string;
   addOutro: boolean;
-  outroText: string;
+  outroUrl: string;
 
   // Embed-only
   audioPlayback: boolean;
@@ -553,14 +553,32 @@ export function RenderSurahDialog({
                       <ToggleRow label="Add Intro" value={cfg.addIntro}
                         onChange={(v) => setCfg((c) => ({ ...c, addIntro: v }))} />
                       {cfg.addIntro && (
-                        <Input value={cfg.introText} onChange={(e) => setCfg((c) => ({ ...c, introText: e.target.value }))}
-                          placeholder="Intro text" className="text-xs mt-1" />
+                        <Input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            const url = URL.createObjectURL(f);
+                            setCfg((c) => ({ ...c, introUrl: url }));
+                          }}
+                          className="text-xs mt-1"
+                        />
                       )}
                       <ToggleRow label="Add Outro" value={cfg.addOutro}
                         onChange={(v) => setCfg((c) => ({ ...c, addOutro: v }))} />
                       {cfg.addOutro && (
-                        <Input value={cfg.outroText} onChange={(e) => setCfg((c) => ({ ...c, outroText: e.target.value }))}
-                          placeholder="Outro text" className="text-xs mt-1" />
+                        <Input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            const url = URL.createObjectURL(f);
+                            setCfg((c) => ({ ...c, outroUrl: url }));
+                          }}
+                          className="text-xs mt-1"
+                        />
                       )}
                     </Box>
 
@@ -678,15 +696,11 @@ export function RenderSurahDialog({
                           className={cn("absolute h-10 w-auto object-contain", cornerCls[cfg.logoCorner])} />
                       )}
 
-                      {introVisible && (
-                        <div className="absolute inset-0 flex items-center justify-center text-center px-6">
-                          <div className="text-white text-2xl sm:text-4xl font-semibold animate-in fade-in duration-500">{cfg.introText}</div>
-                        </div>
+                      {introVisible && cfg.introUrl && (
+                        <video src={cfg.introUrl} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover bg-black" />
                       )}
-                      {outroVisible && (
-                        <div className="absolute inset-0 flex items-center justify-center text-center px-6">
-                          <div className="text-white text-2xl sm:text-4xl font-semibold animate-in fade-in duration-500">{cfg.outroText}</div>
-                        </div>
+                      {outroVisible && cfg.outroUrl && (
+                        <video src={cfg.outroUrl} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover bg-black" />
                       )}
 
                       {!introVisible && !outroVisible && (() => {
@@ -1029,22 +1043,9 @@ async function renderToWebm(args: {
     ctx.textAlign = logoImg ? "left" : "right";
     ctx.fillText("Al-Din.org", logoImg ? 40 : W - 40, 40);
 
-    if (t < introSec && cfg.addIntro) {
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 72px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(cfg.introText, W / 2, H / 2);
-      return;
-    }
-    if (t > introSec + totalWords * perWord && cfg.addOutro) {
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 72px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(cfg.outroText, W / 2, H / 2);
-      return;
-    }
+    // Intro/Outro are now videos rendered via DOM-snapshot path; canvas fallback skips them.
+    if (t < introSec && cfg.addIntro) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); return; }
+    if (t > introSec + totalWords * perWord && cfg.addOutro) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); return; }
 
     const tick = Math.min(totalWords - 1, Math.max(0, Math.floor((t - introSec) / perWord)));
     let vIdx = 0, before = 0;
@@ -1171,9 +1172,9 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     logoUrl: "",
     logoCorner: "tr",
     addIntro: false,
-    introText: "Bismillah",
+    introUrl: "",
     addOutro: false,
-    outroText: "Subscribe & Share",
+    outroUrl: "",
     audioPlayback: true,
     showTafsir: true,
     showCopy: true,
