@@ -30,11 +30,6 @@ export default function ArabicSubcategory() {
               <div className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
                 {w.english}
               </div>
-              {w.arabic && (
-                <div className="font-arabic text-lg mt-1 text-muted-foreground" dir="rtl">
-                  {w.arabic}
-                </div>
-              )}
               {w.transliteration && (
                 <div className="text-xs mt-0.5 text-muted-foreground italic">
                   {w.transliteration}
