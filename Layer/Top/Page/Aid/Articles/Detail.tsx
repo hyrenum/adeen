@@ -83,10 +83,6 @@ export default function ArticleDetail() {
           <>
             <Card className="p-5" hoverable={false}>
               <h1 className="text-2xl font-bold">{data.title}</h1>
-              <div className="mt-4 border-t border-border/40 pt-4">
-                <p className="font-semibold">Hadith Source</p>
-                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{data.source}</p>
-              </div>
             </Card>
             {data.sections.map((s) => (
               <Card key={s.heading} className="p-5" hoverable={false}>

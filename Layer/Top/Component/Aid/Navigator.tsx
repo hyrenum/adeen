@@ -352,7 +352,7 @@ export function Aid_Navigator() {
     if (route?.mode === "dua") {
       return route.duaCategoryId
         ? route.duaCategoryId.replace(/-/g, " ")
-        : "Categories";
+        : "Dua";
     }
     if (route?.mode === "hadith") {
       if (route.hadithId) return `Hadith ${route.hadithId}`;

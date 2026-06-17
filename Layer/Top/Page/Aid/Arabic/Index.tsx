@@ -7,8 +7,8 @@ export default function ArabicIndex() {
   const categories = getArabicCategories();
 
   const extra = [
-    { to: "/Aid/Alphabet", name: "Alphabet", arabicName: "أَبْجَدِيَّة" },
-    { to: "/Aid/Tajweed", name: "Tajweed", arabicName: "تَجْوِيد" },
+    { to: "/Aid/Alphabet", name: "Alphabet" },
+    { to: "/Aid/Tajweed", name: "Tajweed" },
   ];
 
   return (
@@ -20,9 +20,6 @@ export default function ArabicIndex() {
               <div className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
                 {e.name}
               </div>
-              <div className="font-arabic text-lg mt-1 text-muted-foreground" dir="rtl">
-                {e.arabicName}
-              </div>
             </Card>
           </Link>
         ))}
@@ -31,9 +28,6 @@ export default function ArabicIndex() {
             <Card className="p-4 text-center group">
               <div className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
                 {c.name}
-              </div>
-              <div className="font-arabic text-lg mt-1 text-muted-foreground" dir="rtl">
-                {c.arabicName}
               </div>
             </Card>
           </Link>

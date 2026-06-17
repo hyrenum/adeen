@@ -1,7 +1,7 @@
 // Layer/Top/Component/Header.tsx
 import { memo, useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Settings, ArrowLeft, Search, Home, X, Heart, LogIn, Download } from "lucide-react";
+import { Settings, ArrowLeft, Search, Home, X, Heart, LogIn } from "lucide-react";
 import { useScrollDirection } from "@/Middle/Hook/Use-Scroll-Direction";
 import { useApp } from "@/Middle/Context/App";
 import { useAuth } from "@/Middle/Context/Auth";
@@ -361,11 +361,7 @@ export const Header = memo(function Header() {
                 <Search className="h-4 w-4" />
               </Button>
             )}
-            {!isInstalled && (
-              <Button onClick={handleInstall} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost" aria-label="Install app" title="Install app">
-                <Download className="h-4 w-4" />
-              </Button>
-            )}
+            {/* Install/Download button removed from header */}
             {!hideRightSettingsButtons && (
               <>
                 <Button onClick={() => setSettingsSidebarOpen(true)} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
