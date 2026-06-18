@@ -382,46 +382,145 @@ export function RenderSurahDialog({
   const cancelRef = useRef(false);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
 
-  // ---- Real render: capture preview DOM frame-by-frame via html-to-image ----
+  // ---- Headless render (WebCodecs → MediaRecorder → Canvas fallback) ----
   const handleRender = useCallback(async () => {
     if (rendering) return;
-    const node = previewWrapRef.current;
-    if (!node) { toast({ title: "Preview not ready", variant: "destructive" }); return; }
-    const rect = node.getBoundingClientRect();
-    if (rect.width < 2 || rect.height < 2) { toast({ title: "Preview not ready — open dialog wider", variant: "destructive" }); return; }
+    if (!surahData || verses.length === 0) {
+      toast({ title: "Content still loading", variant: "destructive" });
+      return;
+    }
     if (resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); }
     cancelRef.current = false;
     setRendering(true);
     setProgress(0);
+
+    // Load a video file (intro/outro) and wait for metadata.
+    const loadVideo = (url: string): Promise<HTMLVideoElement | null> => {
+      if (!url) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const v = document.createElement("video");
+        v.src = url; v.muted = true; v.playsInline = true; v.preload = "auto";
+        v.crossOrigin = "anonymous";
+        const onReady = () => resolve(v);
+        v.addEventListener("loadeddata", onReady, { once: true });
+        v.addEventListener("error", () => resolve(null), { once: true });
+        // Safety timeout
+        setTimeout(() => resolve(v), 2500);
+      });
+    };
+    const loadImage = (url: string): Promise<HTMLImageElement | null> => {
+      if (!url) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    };
+
     try {
-      const { blob, ext } = await renderPreviewDomToVideo({
-        node,
-        totalWords: Math.max(1, totalWords),
-        perWordMs: 450,
-        fps: 8,
+      const [introVideo, outroVideo, bgImg, containerImg] = await Promise.all([
+        cfg.addIntro ? loadVideo(cfg.introUrl) : Promise.resolve(null),
+        cfg.addOutro ? loadVideo(cfg.outroUrl) : Promise.resolve(null),
+        cfg.bgKind === "image" ? loadImage(cfg.bgUrl) : Promise.resolve(null),
+        cfg.containerBgKind === "image" ? loadImage(cfg.containerBgUrl) : Promise.resolve(null),
+      ]);
+
+      // Pull translation/transliteration text from already-loaded extras.
+      const primaryTr = ecfg.translations.find((t) => t !== "None");
+      const primaryTl = ecfg.transliterations.find((t) => t !== "None");
+      const trArr = primaryTr ? (extraTranslations[primaryTr] ?? []) : [];
+      const tlArr = primaryTl ? (extraTransliterations[primaryTl] ?? []) : [];
+
+      const renderVerses: RenderVerse[] = verses.map((v) => ({
+        verseNumber: v.verseNumber,
+        arabic: v.arabic,
+        words: v.words,
+        translation: primaryTr ? (trArr[v.verseNumber - 1] ?? v.translation) : v.translation,
+        transliteration: primaryTl ? (tlArr[v.verseNumber - 1] ?? v.transliteration) : v.transliteration,
+      }));
+
+      // Arabic font family of the first verse (KFC pages are per-page; v1).
+      const arabicFontFamily =
+        pageFontFamily(ecfg.font, cfg.surahId, verses[0].verseNumber) ?? "Uthmani";
+
+      const reciterFolder = cfg.reciter.replace(/\s+/g, "_").replace(/'/g, "");
+
+      const introMs = introVideo?.duration ? Math.round(introVideo.duration * 1000) : 0;
+      const outroMs = outroVideo?.duration ? Math.round(outroVideo.duration * 1000) : 0;
+
+      const timeline = await buildTimeline({
+        surahId: cfg.surahId,
+        verses: renderVerses,
+        reciter: reciterFolder,
+        fallbackPerWordMs: 450,
+        introMs,
+        outroMs,
+      });
+
+      const scene: RenderScene = {
+        width: previewSize.w,
+        height: previewSize.h,
+        bgColor: cfg.bgColor,
+        bgImage: bgImg,
+        containerBg: cfg.containerBg,
+        containerBgImage: containerImg,
+        borderColor: cfg.borderColor,
+        borderWidth: cfg.borderWidth,
+        borderRadius: cfg.borderRadius,
+        arabicFontFamily,
+        arabicSize: Math.round((previewSize.h / 1080) * ecfg.arabicSize * 3),
+        translationSize: Math.round((previewSize.h / 1080) * ecfg.translationSize * 2),
+        transliterationSize: Math.round((previewSize.h / 1080) * ecfg.transliterationSize * 2),
+        arabicColor: arabicCol,
+        translationColor: translationCol,
+        transliterationColor: transliterationCol,
+        highlightColor: highlightCol,
+        verses: renderVerses,
+        watermark: "Al-Din.org",
+        introVideo,
+        outroVideo,
+      };
+
+      const tier = detectTier();
+      toast({ title: "Rendering…", description: `Engine: ${tier.toUpperCase()}` });
+
+      const result = await renderToVideo({
+        scene,
+        timeline,
+        fps: cfg.exportFormat === "mp4" ? 30 : 24,
         format: cfg.exportFormat,
-        targetSize: previewSize,
-        setTick,
+        videoBitrate: 4_000_000,
         onProgress: setProgress,
         shouldCancel: () => cancelRef.current,
       });
-      const url = URL.createObjectURL(blob);
+
+      const url = URL.createObjectURL(result.blob);
       setResultUrl(url);
-      setResultExt(ext);
-      setResultSize(blob.size);
-      // auto-download
+      setResultExt(result.ext);
+      setResultSize(result.blob.size);
+
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${ext}`;
+      a.download = `Surah-${cfg.surahId}-${cfg.ayahStart}-${cfg.ayahEnd}.${result.ext}`;
       document.body.appendChild(a); a.click(); a.remove();
-      toast({ title: "Video ready", description: `Saved as .${ext} (${(blob.size/1024/1024).toFixed(1)} MB).` });
+      toast({
+        title: "Video ready",
+        description: `${result.tier.toUpperCase()} · ${(result.blob.size / 1024 / 1024).toFixed(1)} MB · ${result.ext.toUpperCase()}`,
+      });
     } catch (err) {
       console.error(err);
       toast({ title: "Render failed", description: String((err as Error)?.message || err), variant: "destructive" });
     } finally {
       setRendering(false);
     }
-  }, [rendering, totalWords, cfg.exportFormat, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, previewSize, resultUrl]);
+  }, [
+    rendering, surahData, verses, resultUrl, cfg, ecfg.font, ecfg.translations, ecfg.transliterations,
+    ecfg.arabicSize, ecfg.translationSize, ecfg.transliterationSize,
+    extraTranslations, extraTransliterations,
+    arabicCol, translationCol, transliterationCol, highlightCol, previewSize,
+  ]);
 
 
   if (!open) return null;
