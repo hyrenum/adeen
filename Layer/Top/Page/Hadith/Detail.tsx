@@ -10,6 +10,7 @@ import { toast } from "@/Middle/Hook/Use-Toast";
 import { Container } from "@/Top/Component/UI/Container";
 import { Button } from "@/Top/Component/UI/Button";
 import { Tooltip } from "@/Top/Component/UI/Tooltip";
+import { ShareDialog } from "@/Top/Component/Dialog/Share";
 import { useState } from "react";
 
 const Detail = () => {
