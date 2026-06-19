@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/Top/Component/UI/Dropdown-Menu";
+import { ShareDialog } from "@/Top/Component/Dialog/Share";
 import { useApp } from "@/Middle/Context/App";
 import { useState } from "react";
 
