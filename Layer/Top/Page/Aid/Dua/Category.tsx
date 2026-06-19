@@ -338,6 +338,14 @@ const Dua_Category = () => {
           </div>
         </div>
       </section>
+      <ShareDialog
+        open={!!shareDua}
+        onOpenChange={(o) => !o && setShareDua(null)}
+        surahId={0}
+        ayahId={0}
+        verseText={shareDua?.arabic}
+        translation={shareDua?.translation}
+      />
     </Layout>
   );
 };
