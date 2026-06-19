@@ -162,7 +162,7 @@ const Dua_Category = () => {
           <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleCopy(dua, index)}>
             <Copy className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleShare(dua, index)}>
+          <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleShare(dua)}>
             <Share2 className="h-3.5 w-3.5" />
           </Button>
         </div>
