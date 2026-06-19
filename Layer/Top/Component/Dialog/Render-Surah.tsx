@@ -793,7 +793,7 @@ export function RenderSurahDialog({
                       ) : (
                         <div className="absolute inset-0" style={{ background: cfg.bgColor }} />
                       )}
-                      <div className="absolute inset-0 bg-black/30" />
+                      {/* No tint overlay — preview matches the rendered output */}
 
                       <div className={cn("absolute text-white text-xs font-medium", cornerCls[ourLogoCorner])}>
                         Al-Din.org
