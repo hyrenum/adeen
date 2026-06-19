@@ -480,6 +480,8 @@ export function RenderSurahDialog({
         highlightColor: highlightCol,
         verses: renderVerses,
         watermark: "Al-Din.org",
+        logoImage: logoImg,
+        logoCorner: cfg.logoCorner,
         introVideo,
         outroVideo,
       };
