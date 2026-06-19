@@ -262,6 +262,14 @@ const Detail = () => {
           )}
         </div>
       </div>
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        surahId={0}
+        ayahId={hadith.id}
+        verseText={hadith.arabic}
+        translation={hadith.translation}
+      />
     </Layout>
   );
 };
