@@ -420,11 +420,12 @@ export function RenderSurahDialog({
     };
 
     try {
-      const [introVideo, outroVideo, bgImg, containerImg] = await Promise.all([
+      const [introVideo, outroVideo, bgImg, containerImg, logoImg] = await Promise.all([
         cfg.addIntro ? loadVideo(cfg.introUrl) : Promise.resolve(null),
         cfg.addOutro ? loadVideo(cfg.outroUrl) : Promise.resolve(null),
         cfg.bgKind === "image" ? loadImage(cfg.bgUrl) : Promise.resolve(null),
         cfg.containerBgKind === "image" ? loadImage(cfg.containerBgUrl) : Promise.resolve(null),
+        cfg.logoUrl ? loadImage(cfg.logoUrl) : Promise.resolve(null),
       ]);
 
       // Pull translation/transliteration text from already-loaded extras.
