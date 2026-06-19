@@ -924,7 +924,11 @@ export function RenderSurahDialog({
 
 // ====================== Sub-bits ======================
 function Box({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("py-3", className)}>{children}</div>;
+  return (
+    <div className={cn("rounded-2xl border border-border/40 bg-card/40 p-3", className)}>
+      {children}
+    </div>
+  );
 }
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{children}</div>;
