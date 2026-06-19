@@ -104,16 +104,8 @@ const Dua_Category = () => {
     toast({ title: "Copied", description: "Dua copied to clipboard" });
   };
 
-  const handleShare = async (dua: DuaItem, index: number) => {
-    const text = `${dua.arabic}\n\n${dua.translation}\n\n— ${dua.reference}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: category.name, text });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "Copied to clipboard" });
-    }
+  const handleShare = (dua: DuaItem) => {
+    setShareDua(dua);
   };
 
   const getFullTransliteration = (dua: DuaItem): string => {
