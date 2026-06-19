@@ -38,8 +38,10 @@ export interface RenderScene {
   // Content
   verses: RenderVerse[];
 
-  // Watermark
+  // Watermark / Logo
   watermark: string;                 // "Al-Din.org"
+  logoImage?: HTMLImageElement | ImageBitmap | null;
+  logoCorner?: "tl" | "tr" | "bl" | "br";
 
   // Intro / outro (video elements already loaded & seekable)
   introVideo?: HTMLVideoElement | null;
