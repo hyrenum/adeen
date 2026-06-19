@@ -97,20 +97,25 @@ export async function encodeWithWebCodecs(opts: EncodeOptions): Promise<EncodeRe
   attachVideo(scene.introVideo);
   attachVideo(scene.outroVideo);
 
+  const seekVideoTo = (v: HTMLVideoElement, sec: number) =>
+    new Promise<void>((resolve) => {
+      const target = Math.max(0, Math.min(sec, (v.duration || sec) - 0.001));
+      if (Math.abs(v.currentTime - target) < 1 / fps) { resolve(); return; }
+      const done = () => { v.removeEventListener("seeked", done); resolve(); };
+      v.addEventListener("seeked", done, { once: true });
+      try { v.currentTime = target; } catch { resolve(); }
+      setTimeout(() => { v.removeEventListener("seeked", done); resolve(); }, 200);
+    });
+
   try {
     for (let f = 0; f < totalFrames; f++) {
       if (shouldCancel?.()) break;
       const tMs = (f / fps) * 1000;
 
-      // Seek intro/outro videos in lock-step (best-effort).
       if (tMs < timeline.introMs && scene.introVideo) {
-        try { scene.introVideo.currentTime = tMs / 1000; } catch { /* ignore */ }
-        // Wait a microtask for the frame to be ready.
-        await new Promise((r) => setTimeout(r, 0));
+        await seekVideoTo(scene.introVideo, tMs / 1000);
       } else if (tMs >= timeline.bodyEndMs && scene.outroVideo) {
-        const off = (tMs - timeline.bodyEndMs) / 1000;
-        try { scene.outroVideo.currentTime = off; } catch { /* ignore */ }
-        await new Promise((r) => setTimeout(r, 0));
+        await seekVideoTo(scene.outroVideo, (tMs - timeline.bodyEndMs) / 1000);
       }
 
       const res = paintFrame(ctx as any, scene, timeline, tMs);
@@ -120,11 +125,9 @@ export async function encodeWithWebCodecs(opts: EncodeOptions): Promise<EncodeRe
         timestamp: f * frameDurUs,
         duration: frameDurUs,
       });
-      // Keyframe every 1s.
       encoder.encode(vf, { keyFrame: f % fps === 0 });
       vf.close();
 
-      // Throttle queue so we don't blow memory on slow encoders.
       if (encoder.encodeQueueSize > fps * 2) {
         await new Promise((r) => setTimeout(r, 8));
       }
