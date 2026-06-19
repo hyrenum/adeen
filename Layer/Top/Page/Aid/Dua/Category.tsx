@@ -76,6 +76,7 @@ const Dua_Category = () => {
   } = useApp();
 
   const [activeTooltip, setActiveTooltip] = useState<{ duaIndex: number; wordIndex: number } | null>(null);
+  const [shareDua, setShareDua] = useState<DuaItem | null>(null);
 
   const categoryName = categoryId ? formatNameFromId(categoryId) : "";
   const category = categoryName ? getDuaCategory(categoryName) : null;
