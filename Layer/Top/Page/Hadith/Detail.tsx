@@ -77,17 +77,9 @@ const Detail = () => {
     toast({ title: t.quran.copy, description: "Hadith copied to clipboard" });
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!hadith) return;
-    const text = `${hadith.arabic}\n\n${hadith.translation}\n\n— ${collection?.name} ${hadith.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${collection?.name} - Hadith ${hadith.id}`, text });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "Copied to clipboard" });
-    }
+    setShareOpen(true);
   };
 
   // Not found state
