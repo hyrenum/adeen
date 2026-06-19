@@ -62,15 +62,25 @@ async function run(opts: RunArgs): Promise<EncodeResult> {
   const totalFrames = Math.max(1, Math.round((timeline.totalMs / 1000) * fps));
   const frameIntervalMs = 1000 / fps;
 
+  const seekVideoTo = (v: HTMLVideoElement, sec: number) =>
+    new Promise<void>((resolve) => {
+      const target = Math.max(0, Math.min(sec, (v.duration || sec) - 0.001));
+      if (Math.abs(v.currentTime - target) < 1 / fps) { resolve(); return; }
+      const done = () => { v.removeEventListener("seeked", done); resolve(); };
+      v.addEventListener("seeked", done, { once: true });
+      try { v.currentTime = target; } catch { resolve(); }
+      setTimeout(() => { v.removeEventListener("seeked", done); resolve(); }, 200);
+    });
+
   try {
     for (let f = 0; f < totalFrames; f++) {
       if (shouldCancel?.()) break;
       const tMs = (f / fps) * 1000;
 
       if (tMs < timeline.introMs && scene.introVideo) {
-        try { scene.introVideo.currentTime = tMs / 1000; } catch { /* ignore */ }
+        await seekVideoTo(scene.introVideo, tMs / 1000);
       } else if (tMs >= timeline.bodyEndMs && scene.outroVideo) {
-        try { scene.outroVideo.currentTime = (tMs - timeline.bodyEndMs) / 1000; } catch { /* ignore */ }
+        await seekVideoTo(scene.outroVideo, (tMs - timeline.bodyEndMs) / 1000);
       }
 
       paintFrame(paintCtx, scene, timeline, tMs);
