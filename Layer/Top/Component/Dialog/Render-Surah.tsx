@@ -420,11 +420,12 @@ export function RenderSurahDialog({
     };
 
     try {
-      const [introVideo, outroVideo, bgImg, containerImg] = await Promise.all([
+      const [introVideo, outroVideo, bgImg, containerImg, logoImg] = await Promise.all([
         cfg.addIntro ? loadVideo(cfg.introUrl) : Promise.resolve(null),
         cfg.addOutro ? loadVideo(cfg.outroUrl) : Promise.resolve(null),
         cfg.bgKind === "image" ? loadImage(cfg.bgUrl) : Promise.resolve(null),
         cfg.containerBgKind === "image" ? loadImage(cfg.containerBgUrl) : Promise.resolve(null),
+        cfg.logoUrl ? loadImage(cfg.logoUrl) : Promise.resolve(null),
       ]);
 
       // Pull translation/transliteration text from already-loaded extras.
@@ -479,6 +480,8 @@ export function RenderSurahDialog({
         highlightColor: highlightCol,
         verses: renderVerses,
         watermark: "Al-Din.org",
+        logoImage: logoImg,
+        logoCorner: cfg.logoCorner,
         introVideo,
         outroVideo,
       };
@@ -790,7 +793,7 @@ export function RenderSurahDialog({
                       ) : (
                         <div className="absolute inset-0" style={{ background: cfg.bgColor }} />
                       )}
-                      <div className="absolute inset-0 bg-black/30" />
+                      {/* No tint overlay — preview matches the rendered output */}
 
                       <div className={cn("absolute text-white text-xs font-medium", cornerCls[ourLogoCorner])}>
                         Al-Din.org
@@ -921,7 +924,11 @@ export function RenderSurahDialog({
 
 // ====================== Sub-bits ======================
 function Box({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("py-3", className)}>{children}</div>;
+  return (
+    <div className={cn("rounded-2xl border border-border/40 bg-card/40 p-3", className)}>
+      {children}
+    </div>
+  );
 }
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{children}</div>;
@@ -1263,10 +1270,10 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     bgColor: "#0b1f17",
     bgUrl: "",
     containerBgKind: "color",
-    containerBg: "#ffffff",
+    containerBg: "transparent",
     containerBgUrl: "",
-    borderColor: "#e5e7eb",
-    borderWidth: 1,
+    borderColor: "#ffffff",
+    borderWidth: 0,
     borderRadius: 24,
     arabicColor: "#111827",
     translationColor: "#374151",

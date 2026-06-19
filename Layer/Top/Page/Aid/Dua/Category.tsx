@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/Top/Component/UI/Dropdown-Menu";
+import { ShareDialog } from "@/Top/Component/Dialog/Share";
 import { useApp } from "@/Middle/Context/App";
 import { useState } from "react";
 
@@ -75,6 +76,7 @@ const Dua_Category = () => {
   } = useApp();
 
   const [activeTooltip, setActiveTooltip] = useState<{ duaIndex: number; wordIndex: number } | null>(null);
+  const [shareDua, setShareDua] = useState<DuaItem | null>(null);
 
   const categoryName = categoryId ? formatNameFromId(categoryId) : "";
   const category = categoryName ? getDuaCategory(categoryName) : null;
@@ -102,16 +104,8 @@ const Dua_Category = () => {
     toast({ title: "Copied", description: "Dua copied to clipboard" });
   };
 
-  const handleShare = async (dua: DuaItem, index: number) => {
-    const text = `${dua.arabic}\n\n${dua.translation}\n\n— ${dua.reference}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: category.name, text });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "Copied to clipboard" });
-    }
+  const handleShare = (dua: DuaItem) => {
+    setShareDua(dua);
   };
 
   const getFullTransliteration = (dua: DuaItem): string => {
@@ -168,7 +162,7 @@ const Dua_Category = () => {
           <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleCopy(dua, index)}>
             <Copy className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleShare(dua, index)}>
+          <Button size="sm" className="w-7 h-7 p-0" onClick={() => handleShare(dua)}>
             <Share2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -344,6 +338,14 @@ const Dua_Category = () => {
           </div>
         </div>
       </section>
+      <ShareDialog
+        open={!!shareDua}
+        onOpenChange={(o) => !o && setShareDua(null)}
+        surahId={0}
+        ayahId={0}
+        verseText={shareDua?.arabic}
+        translation={shareDua?.translation}
+      />
     </Layout>
   );
 };

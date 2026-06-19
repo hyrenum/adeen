@@ -10,6 +10,7 @@ import { toast } from "@/Middle/Hook/Use-Toast";
 import { Container } from "@/Top/Component/UI/Container";
 import { Button } from "@/Top/Component/UI/Button";
 import { Tooltip } from "@/Top/Component/UI/Tooltip";
+import { ShareDialog } from "@/Top/Component/Dialog/Share";
 import { useState } from "react";
 
 const Detail = () => {
@@ -34,6 +35,7 @@ const Detail = () => {
   } = useApp();
 
   const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Helper: convert 1‑10 to rem (base 1.2rem for size 5)
   const toRem = (size: number, base = 1.2) => `${(base * size) / 5}rem`;
@@ -75,17 +77,9 @@ const Detail = () => {
     toast({ title: t.quran.copy, description: "Hadith copied to clipboard" });
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!hadith) return;
-    const text = `${hadith.arabic}\n\n${hadith.translation}\n\n— ${collection?.name} ${hadith.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${collection?.name} - Hadith ${hadith.id}`, text });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "Copied to clipboard" });
-    }
+    setShareOpen(true);
   };
 
   // Not found state
@@ -268,6 +262,14 @@ const Detail = () => {
           )}
         </div>
       </div>
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        surahId={0}
+        ayahId={hadith.id}
+        verseText={hadith.arabic}
+        translation={hadith.translation}
+      />
     </Layout>
   );
 };
