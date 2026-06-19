@@ -35,6 +35,7 @@ const Detail = () => {
   } = useApp();
 
   const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Helper: convert 1‑10 to rem (base 1.2rem for size 5)
   const toRem = (size: number, base = 1.2) => `${(base * size) / 5}rem`;
