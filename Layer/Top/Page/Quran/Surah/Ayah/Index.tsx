@@ -23,12 +23,14 @@ import { useReadingSession } from "@/Middle/Hook/Use-Reading-Session";
 import { useQuranGoals } from "@/Middle/Hook/Use-Quran-Goals";
 import { Button } from "@/Top/Component/UI/button";
 import { TafsirDialog } from "@/Top/Component/Dialog/Tafsir";
+import { RenderSurahDialog } from "@/Top/Component/Dialog/Render-Surah";
 import { Container } from "@/Top/Component/UI/Container";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Alert, AlertDescription } from "@/Top/Component/UI/Alert";
 import { AudioControls } from "@/Top/Component/Quran/Record";
 import { useDeepgram } from "@/Middle/Hook/Use-STT";
+
 const AyahIndex = () => {
   const { id, verseId } = useParams<{ id: string; verseId: string }>();
   const [searchParams] = useSearchParams();
@@ -69,6 +71,7 @@ const AyahIndex = () => {
 
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [surahInfoDialog, setSurahInfoDialog] = useState(false);
+  const [renderDialog, setRenderDialog] = useState<{ open: boolean; ayah?: number; mode: "render" | "embed" }>({ open: false, mode: "render" });
   const [tafsirDialog, setTafsirDialog] = useState<{
     open: boolean;
     verseNumber: number;
@@ -84,6 +87,7 @@ const AyahIndex = () => {
     verseText?: string;
     translation?: string;
   }>({ open: false });
+
 
   const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -289,8 +293,10 @@ const AyahIndex = () => {
             onInfoClick={() => setSurahInfoDialog(true)}
             onAudioClick={() => setShowAudioPlayer(true)}
             onTafsirClick={() => setTafsirDialog({ open: true, verseNumber: verseNum })}
+            onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
           />
         )}
+
 
         <div ref={containerRef} className="w-full">
           {isPageLayout ? (
@@ -345,6 +351,7 @@ const AyahIndex = () => {
               selectedAyahTransliterator={selectedAyahTransliterator}
               targetVerse={null}
               verseRefs={verseRefs}
+              flatTopOnFirst={showHeader}
               onNotesClick={(ayahId) => {
                 const v = verses?.find((v) => v.verseNumber === ayahId);
                 setNotesDialog({ open: true, ayahId, verse: v });
@@ -353,9 +360,12 @@ const AyahIndex = () => {
               onShareClick={(ayahId, verseText, translation) =>
                 setShareDialog({ open: true, ayahId, verseText, translation })
               }
+              onRenderClick={(ayahId) => setRenderDialog({ open: true, mode: "render", ayah: ayahId })}
+              onEmbedClick={(ayahId) => setRenderDialog({ open: true, mode: "embed", ayah: ayahId })}
               hoverTransliteration={hoverTransliteration}
               inlineTransliteration={inlineTransliteration}
             />
+
           )}
 
           {/* Navigation – icon-only, same style as Surah page */}
@@ -436,6 +446,14 @@ const AyahIndex = () => {
         surahId={surahId}
         verseNumber={tafsirDialog.verseNumber}
       />
+      <RenderSurahDialog
+        open={renderDialog.open}
+        onOpenChange={(o) => setRenderDialog((p) => ({ ...p, open: o }))}
+        surahId={surahId}
+        ayahNumber={renderDialog.ayah}
+        mode={renderDialog.mode}
+      />
+
     </Layout>
   );
 };

@@ -7,6 +7,8 @@ import { NotesDialog } from "@/Top/Component/Dialog/Notes";
 import { ShareDialog } from "@/Top/Component/Dialog/Share";
 import { SurahInfoDialog } from "@/Top/Component/Dialog/Surah-Info";
 import { TafsirDialog } from "@/Top/Component/Dialog/Tafsir";
+import { RenderSurahDialog } from "@/Top/Component/Dialog/Render-Surah";
+
 import {
   surahList,
   juzData,
@@ -70,6 +72,8 @@ const KalimaIndex = () => {
 
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [surahInfoDialog, setSurahInfoDialog] = useState(false);
+  const [renderDialog, setRenderDialog] = useState<{ open: boolean; ayah?: number; mode: "render" | "embed" }>({ open: false, mode: "render" });
+
   const [tafsirDialog, setTafsirDialog] = useState<{
     open: boolean;
     verseNumber: number;
@@ -236,8 +240,10 @@ const KalimaIndex = () => {
               onTafsirClick={() =>
                 setTafsirDialog({ open: true, verseNumber: verseNum })
               }
+              onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
             />
           )}
+
           <Container
             className={`w-full ${
               showHeader
@@ -292,8 +298,10 @@ const KalimaIndex = () => {
             onTafsirClick={() =>
               setTafsirDialog({ open: true, verseNumber: verseNum })
             }
+            onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
           />
         )}
+
 
         {/* Word container – flat top when header is present */}
         <Container
@@ -335,6 +343,25 @@ const KalimaIndex = () => {
             </span>
           </div>
         </Container>
+
+        {/* Render / Embed actions */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setRenderDialog({ open: true, mode: "render" })}
+          >
+            Render Surah
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setRenderDialog({ open: true, mode: "embed", ayah: verseNum })}
+          >
+            Embed Ayah
+          </Button>
+        </div>
+
 
         {/* Word‑to‑word navigation */}
         <div className="flex items-center justify-between gap-4 mt-6">
@@ -422,6 +449,14 @@ const KalimaIndex = () => {
         surahId={surahId}
         verseNumber={tafsirDialog.verseNumber}
       />
+      <RenderSurahDialog
+        open={renderDialog.open}
+        onOpenChange={(o) => setRenderDialog((p) => ({ ...p, open: o }))}
+        surahId={surahId}
+        ayahNumber={renderDialog.ayah}
+        mode={renderDialog.mode}
+      />
+
     </Layout>
   );
 };
