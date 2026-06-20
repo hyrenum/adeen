@@ -240,8 +240,10 @@ const KalimaIndex = () => {
               onTafsirClick={() =>
                 setTafsirDialog({ open: true, verseNumber: verseNum })
               }
+              onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
             />
           )}
+
           <Container
             className={`w-full ${
               showHeader
