@@ -72,6 +72,8 @@ const KalimaIndex = () => {
 
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [surahInfoDialog, setSurahInfoDialog] = useState(false);
+  const [renderDialog, setRenderDialog] = useState<{ open: boolean; ayah?: number; mode: "render" | "embed" }>({ open: false, mode: "render" });
+
   const [tafsirDialog, setTafsirDialog] = useState<{
     open: boolean;
     verseNumber: number;
