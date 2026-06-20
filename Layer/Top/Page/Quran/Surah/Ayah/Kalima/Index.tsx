@@ -449,6 +449,14 @@ const KalimaIndex = () => {
         surahId={surahId}
         verseNumber={tafsirDialog.verseNumber}
       />
+      <RenderSurahDialog
+        open={renderDialog.open}
+        onOpenChange={(o) => setRenderDialog((p) => ({ ...p, open: o }))}
+        surahId={surahId}
+        ayahNumber={renderDialog.ayah}
+        mode={renderDialog.mode}
+      />
+
     </Layout>
   );
 };
