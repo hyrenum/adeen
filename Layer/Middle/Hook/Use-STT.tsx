@@ -26,9 +26,17 @@ interface UseDeepgramProps {
     markWordCompleted: (surahId: number, verse: number, word: number) => void;
   };
   onVerseComplete?: (verseNumber: number) => void;
+  /** ms of inactivity (no new STT events) before auto-stop. Default 8000. */
+  silenceAutoStopMs?: number;
+  /** Maximum number of reconnect attempts before giving up. Default 5. */
+  maxReconnectAttempts?: number;
 }
 
-export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComplete }: UseDeepgramProps) {
+export function useDeepgram({
+  surahId, verses, visibleVerse, hifz, onVerseComplete,
+  silenceAutoStopMs = 8000,
+  maxReconnectAttempts = 5,
+}: UseDeepgramProps) {
 
   // ---------- STT state ----------
   const [isRecording, setIsRecording] = useState(false);
