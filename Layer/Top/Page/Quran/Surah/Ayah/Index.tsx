@@ -351,6 +351,7 @@ const AyahIndex = () => {
               selectedAyahTransliterator={selectedAyahTransliterator}
               targetVerse={null}
               verseRefs={verseRefs}
+              flatTopOnFirst={showHeader}
               onNotesClick={(ayahId) => {
                 const v = verses?.find((v) => v.verseNumber === ayahId);
                 setNotesDialog({ open: true, ayahId, verse: v });
@@ -359,9 +360,12 @@ const AyahIndex = () => {
               onShareClick={(ayahId, verseText, translation) =>
                 setShareDialog({ open: true, ayahId, verseText, translation })
               }
+              onRenderClick={(ayahId) => setRenderDialog({ open: true, mode: "render", ayah: ayahId })}
+              onEmbedClick={(ayahId) => setRenderDialog({ open: true, mode: "embed", ayah: ayahId })}
               hoverTransliteration={hoverTransliteration}
               inlineTransliteration={inlineTransliteration}
             />
+
           )}
 
           {/* Navigation – icon-only, same style as Surah page */}
