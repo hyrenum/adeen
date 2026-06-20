@@ -339,14 +339,11 @@ export function RenderSurahDialog({
   const highlightCol      = cfg.autoContrast ? ensureReadable(cfg.highlightColor, containerBgColorForContrast)      : cfg.highlightColor;
 
   // Highlight cycling (render only)
-  const totalWords = useMemo(() => verses.reduce((a, v) => a + v.words.length, 0), [verses]);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!open || totalWords === 0 || mode !== "render" || rendering) return;
-    setTick(0);
-    const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
-    return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode, rendering]);
+  // Static preview — no cycling. We always show the first verse in range.
+  const tick = 0;
+  useEffect(() => { /* static preview, no interval */ }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode, rendering]);
+
+  const currentVerseIdx = 0;
 
   const currentVerseIdx = useMemo(() => {
     let count = 0;
