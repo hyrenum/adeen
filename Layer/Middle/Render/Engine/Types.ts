@@ -43,10 +43,24 @@ export interface RenderScene {
   logoImage?: HTMLImageElement | ImageBitmap | null;
   logoCorner?: "tl" | "tr" | "bl" | "br";
 
+  // Positioning (defaults: arabic=center, translation/transliteration=bottom-center)
+  arabicPosition?: ScenePosition;
+  translationPosition?: ScenePosition;
+  transliterationPosition?: ScenePosition;
+
+  // Mushaf-style guide lines overlay
+  showLines?: boolean;
+  linesCount?: number;
+
   // Intro / outro (video elements already loaded & seekable)
   introVideo?: HTMLVideoElement | null;
   outroVideo?: HTMLVideoElement | null;
 }
+
+export type ScenePosition =
+  | "top-left" | "top-center" | "top-right"
+  | "center-left" | "center" | "center-right"
+  | "bottom-left" | "bottom-center" | "bottom-right";
 
 /** Single word slice on the global timeline (ms, absolute from t=0). */
 export interface TimelineWord {
