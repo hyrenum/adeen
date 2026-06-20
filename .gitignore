@@ -8,6 +8,8 @@ __pycache__/
 # Node modules
 node_modules/
 
+# Local Generated App Storage / Database Layers
+
 # Large model files
 *.safetensors
 *.bin

@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    watch: {
+      // Prevents Vite from indexing the 700k+ generated static JSON files, stopping OOM errors
+      ignored: ["**/Layer/Bottom/Data/**"],
+    },
   },
   plugins: [
     react(),

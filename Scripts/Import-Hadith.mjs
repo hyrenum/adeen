@@ -1,38 +1,39 @@
 #!/usr/bin/env node
 /**
- * Import Hadith from fawazahmed0/hadith-api and write JSON files
- * in our project structure:
- *   Layer/Bottom/Data/Hadith/Sahih/al-Bukhari/<Chapter-Name>/<id>.json
- *
- * File format: [arabic, transliteration (string|string[]), translation, wbw? (string[]), narrator]
- * Transliteration/WBW are left empty as the source API does not provide them.
- *
- * Usage:
- *   node Scripts/Import-Hadith.mjs [bukhari|muslim|abudawud|tirmidhi|nasai|ibnmajah]
- * Default: bukhari
+ * Production Script: Dynamically parses and processes the remaining 9 major Hadith collections
+ * Progress Tracking Format: amountAlreadydone/#TotalThatNeedstoBeDone
  */
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const BOOK = process.argv[2] || "bukhari";
+// Array setup processing all other available collections (Bukhari removed)
+const COLLECTIONS = [
+  { dirName: "Muslim", prefix: "muslim", series: "Sahih" },
+  { dirName: "Abu-Dawud", prefix: "abudawud", series: "Sunan" },
+  { dirName: "at-Tirmidhi", prefix: "tirmidhi", series: "Jami" },
+  { dirName: "an-Nasai", prefix: "nasai", series: "Sunan" },
+  { dirName: "Ibn-Majah", prefix: "ibnmajah", series: "Sunan" },
+  { dirName: "Muwatta-Malik", prefix: "malik", series: "Muwatta" },
+  { dirName: "Al-Nawawi", prefix: "nawawi", series: "Arbain" },
+  { dirName: "Hadith-Qudsi", prefix: "qudsi", series: "Qudsi" },
+  { dirName: "Mishkat-al-Masabih", prefix: "dehlawi", series: "Mishkat" }
+];
 
-const BOOK_MAP = {
-  bukhari: { ar: "ara-bukhari", en: "eng-bukhari", folder: "al-Bukhari" },
-  muslim: { ar: "ara-muslim", en: "eng-muslim", folder: "Muslim" },
-  abudawud: { ar: "ara-abudawud", en: "eng-abudawud", folder: "Abu-Dawud" },
-  tirmidhi: { ar: "ara-tirmidhi", en: "eng-tirmidhi", folder: "Tirmidhi" },
-  nasai: { ar: "ara-nasai", en: "eng-nasai", folder: "An-Nasai" },
-  ibnmajah: { ar: "ara-ibnmajah", en: "eng-ibnmajah", folder: "Ibn-Majah" },
+const LANGS = ["ar", "bn", "en", "fr", "id", "ru", "tr", "ur"];
+
+const LANG_NAME_MAP = {
+  ar: "Arabic",
+  bn: "Bengali",
+  en: "English",
+  fr: "French",
+  id: "Indonesian",
+  ru: "Russian",
+  tr: "Turkish",
+  ur: "Urdu"
 };
 
-const cfg = BOOK_MAP[BOOK];
-if (!cfg) {
-  console.error("Unknown book:", BOOK);
-  process.exit(1);
-}
-
 const BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions";
-const ROOT = path.resolve("Layer/Bottom/Data/Hadith/Sahih", cfg.folder);
+const BASE_ROOT = path.resolve("Layer/Bottom/Data/Hadith");
 
 const slug = (s) =>
   s
@@ -40,57 +41,97 @@ const slug = (s) =>
     .trim()
     .replace(/\s+/g, "-");
 
-const extractNarrator = (text) => {
-  const m = text.match(/^Narrated\s+([^:]+):\s*/i);
-  if (m) return [text.slice(m[0].length).trim(), m[1].trim()];
-  return [text, ""];
-};
+// Text Scrubbers
+const cleanBengali = (text) => text.replace(/^[\s\S]*?\]\s*/, "").trim();
+const cleanRussian = (text) => text.replace(/\\n/g, " ").replace(/—\s+/g, "").replace(/\[\d+\]/g, "").replace(/\s+/g, " ").trim();
+const cleanTurkish = (text) => text.replace(/(Tekrar:|Diğer Tahric:)[\s\S]*$/, "").trim();
 
 async function fetchJSON(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`${r.status} ${url}`);
-  return r.json();
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+async function writeDataFile(category, subFolder, series, bookDirName, chapterSlug, hNum, data) {
+  const targetFolder = path.join(BASE_ROOT, category, subFolder, series, bookDirName, chapterSlug);
+  await fs.mkdir(targetFolder, { recursive: true });
+  await fs.writeFile(
+    path.join(targetFolder, `${hNum}.json`),
+    JSON.stringify(data, null, 2),
+    "utf8"
+  );
+}
+
+async function processCollection(book) {
+  const responses = await Promise.all(
+    LANGS.map((lang) => fetchJSON(`${BASE}/${lang === "ar" ? "ara" : lang === "en" ? "eng" : lang}-${book.prefix}.json`))
+  );
+
+  const dataMaps = {};
+  let baseArabicEd = null;
+  let baseEnglishEd = null;
+
+  LANGS.forEach((lang, index) => {
+    const res = responses[index];
+    if (!res) {
+      dataMaps[lang] = new Map();
+      return;
+    }
+    if (lang === "ar") baseArabicEd = res;
+    if (lang === "en") baseEnglishEd = res;
+    
+    dataMaps[lang] = new Map(res.hadiths.map((h) => [h.hadithnumber, h]));
+  });
+
+  if (!baseArabicEd || !baseEnglishEd) {
+    return;
+  }
+
+  const chapters = new Map(
+    baseEnglishEd.metadata.sections ? Object.entries(baseEnglishEd.metadata.sections) : []
+  );
+
+  const totalToProcess = baseArabicEd.hadiths.length;
+  let written = 0;
+
+  for (const h of baseArabicEd.hadiths) {
+    const hNum = h.hadithnumber;
+    const enH = dataMaps.en.get(hNum);
+    const chapterId = String(enH?.reference?.book ?? "0");
+    const chapterSlug = slug(chapters.get(chapterId) || `Chapter-${chapterId}`);
+
+    // --- 1. Transliteration (Arabic ONLY) ---
+    await writeDataFile("Transliteration", "Arabic", book.series, book.dirName, chapterSlug, hNum, "");
+
+    // --- 2. Translation & KBK (All target languages) ---
+    for (const lang of LANGS) {
+      let text = (dataMaps[lang].get(hNum)?.text || "").trim();
+      
+      if (lang === "bn") text = cleanBengali(text);
+      if (lang === "ru") text = cleanRussian(text);
+      if (lang === "tr") text = cleanTurkish(text);
+
+      const folderName = LANG_NAME_MAP[lang];
+
+      await writeDataFile("Translation", folderName, book.series, book.dirName, chapterSlug, hNum, text);
+      await writeDataFile("KBK", folderName, book.series, book.dirName, chapterSlug, hNum, "");
+    }
+
+    written++;
+    console.log(`${written}/${totalToProcess}`);
+  }
 }
 
 async function main() {
-  console.log(`Fetching ${cfg.ar} + ${cfg.en} ...`);
-  const [ar, en] = await Promise.all([
-    fetchJSON(`${BASE}/${cfg.ar}.json`),
-    fetchJSON(`${BASE}/${cfg.en}.json`),
-  ]);
-
-  const enMap = new Map(en.hadiths.map((h) => [h.hadithnumber, h]));
-  const chapters = new Map(en.metadata.sections ? Object.entries(en.metadata.sections) : []);
-  const sectionDetails = en.metadata.section_details || {};
-
-  await fs.mkdir(ROOT, { recursive: true });
-
-  let written = 0;
-  for (const h of ar.hadiths) {
-    const enH = enMap.get(h.hadithnumber);
-    if (!enH) continue;
-
-    const arabic = (h.text || "").trim();
-    const [translation, narrator] = extractNarrator((enH.text || "").trim());
-
-    const chapterId = String(enH.reference?.book ?? "0");
-    const chapterName = chapters.get(chapterId) || `Chapter-${chapterId}`;
-    const folder = path.join(ROOT, slug(chapterName));
-    await fs.mkdir(folder, { recursive: true });
-
-    const data = [arabic, "", translation, narrator];
-    await fs.writeFile(
-      path.join(folder, `${h.hadithnumber}.json`),
-      JSON.stringify(data, null, 2),
-      "utf8"
-    );
-    written++;
-    if (written % 200 === 0) console.log(`  wrote ${written}...`);
+  for (const book of COLLECTIONS) {
+    await processCollection(book);
   }
-  console.log(`Done. ${written} hadith written to ${ROOT}`);
 }
 
 main().catch((e) => {
-  console.error(e);
   process.exit(1);
 });
