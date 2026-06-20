@@ -107,7 +107,7 @@ export function useDeepgram({
 
   // Auto-pause silence threshold (ms). After this period without new speech
   // events, recording stops to avoid hanging connections.
-  const SILENCE_AUTO_STOP_MS = 8000;
+  const SILENCE_AUTO_STOP_MS = silenceAutoStopMs;
   // How far ahead in the reference text we look for a fuzzy match.
   const SKIP_AHEAD_WINDOW = 6;
   // Max Levenshtein distance allowed for a fuzzy word match (scaled to length).
