@@ -883,76 +883,75 @@ export function RenderSurahDialog({
                       {!introVisible && !outroVisible && (() => {
                         const v = verses[currentVerseIdx];
                         if (!v) return null;
-                        let before = 0;
-                        for (let i = 0; i < currentVerseIdx; i++) before += verses[i].words.length;
-                        const currentWordIdx = tick - before;
+                        const currentWordIdx = -1; // static preview, no highlight
                         const activeTranslations = ecfg.translations.filter((t) => t !== "None");
                         const activeTransliterations = ecfg.transliterations.filter((t) => t !== "None");
                         const ff = pageFontFamily(ecfg.font, cfg.surahId, v.verseNumber);
 
-                        return (
-                          <div className="absolute inset-0 flex items-center justify-center p-6">
-                            <div className="w-full max-w-3xl px-6 py-6">
+                        const arabicBlock = (
+                          <div className={cn("absolute inset-0 flex p-6 pointer-events-none", posClasses(cfg.arabicPosition))}>
+                            <div dir="rtl"
+                              className={cn("max-w-[90%] leading-relaxed", fontClass(ecfg.font))}
+                              style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
+                              {v.words.map((w, i) => (
+                                <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
+                                  {w}{ecfg.font === "uthmani_v1" ? "" : " "}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
 
-                              {(() => {
-                                const hasInlineTr = !!v.wbwTranslationInline?.length;
-                                const hasInlineTl = !!v.wbwTransliterationInline?.length;
-                                const anyInline = hasInlineTr || hasInlineTl;
-
-                                if (anyInline) {
-                                  return (
-                                    <div dir="rtl" className={cn("flex flex-wrap justify-center items-start gap-x-3 gap-y-2", fontClass(ecfg.font))}>
-                                      {v.words.map((w, i) => {
-                                        const isLast = i === v.words.length - 1;
-                                        return (
-                                          <div key={i} className="flex flex-col items-center" style={{ minWidth: "2.5rem" }}>
-                                            <span style={{ color: i === currentWordIdx ? highlightCol : arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff, lineHeight: 1.6 }}>{w}</span>
-                                            {!isLast && (
-                                              <div className="flex flex-col items-center gap-y-0.5 mt-1 w-full" dir="ltr" style={{ fontFamily: "system-ui, sans-serif" }}>
-                                                {hasInlineTr && v.wbwTranslationInline?.[i] && (
-                                                  <span style={{ color: translationCol, fontSize: 12, textAlign: "center", lineHeight: 1.2 }}>{v.wbwTranslationInline[i]}</span>
-                                                )}
-                                                {hasInlineTl && v.wbwTransliterationInline?.[i] && (
-                                                  <span style={{ color: transliterationCol, fontSize: 12, fontStyle: "italic", textAlign: "center", lineHeight: 1.2 }}>{v.wbwTransliterationInline[i]}</span>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <div dir="rtl"
-                                    className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
-                                    style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
-                                    {v.words.map((w, i) => (
-                                      <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                        {w}{ecfg.font === "uthmani_v1" ? "" : " "}
-                                      </span>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-
+                        const tlBlock = activeTransliterations.length > 0 && (
+                          <div className={cn("absolute inset-0 flex p-6 pointer-events-none", posClasses(cfg.transliterationPosition))}>
+                            <div className="max-w-[90%]">
                               {activeTransliterations.map((src) => (
-                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
+                                <div key={src} className="italic" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
                                   {extraTransliterations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        );
 
+                        const trBlock = activeTranslations.length > 0 && (
+                          <div className={cn("absolute inset-0 flex p-6 pointer-events-none", posClasses(cfg.translationPosition))}>
+                            <div className="max-w-[90%]">
                               {activeTranslations.map((src) => (
-                                <div key={src} className="text-center mt-3"
-                                  style={{ color: translationCol, fontSize: ecfg.translationSize }}>
+                                <div key={src} style={{ color: translationCol, fontSize: ecfg.translationSize }}>
                                   {extraTranslations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
                             </div>
                           </div>
                         );
+
+                        return (
+                          <>
+                            {arabicBlock}
+                            {tlBlock}
+                            {trBlock}
+                          </>
+                        );
                       })()}
+
+                      {/* Lines overlay (mushaf-style guide lines) */}
+                      {cfg.showLines && (
+                        <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-6 py-8">
+                          {Array.from({ length: Math.max(2, cfg.linesCount) }).map((_, i) => (
+                            <div key={i} className="h-px bg-white/20" />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Watermark */}
+                      {cfg.showWatermark && cfg.watermarkText && (
+                        <div className="absolute bottom-2 right-3 text-[10px] sm:text-xs font-semibold text-white/85 pointer-events-none"
+                          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+                          {cfg.watermarkText}
+                        </div>
+                      )}
+
                     </>
                   )}
 
