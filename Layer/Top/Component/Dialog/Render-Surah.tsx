@@ -36,6 +36,30 @@ import {
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
 type RenderFont = "uthmani" | "indopak" | "uthmani_v1" | "uthmani_v2" | "uthmani_v4";
+type Position =
+  | "top-left" | "top-center" | "top-right"
+  | "center-left" | "center" | "center-right"
+  | "bottom-left" | "bottom-center" | "bottom-right";
+
+const POSITIONS: { id: Position; label: string }[] = [
+  { id: "top-left",      label: "Top Left" },
+  { id: "top-center",    label: "Top Center" },
+  { id: "top-right",     label: "Top Right" },
+  { id: "center-left",   label: "Center Left" },
+  { id: "center",        label: "Center" },
+  { id: "center-right",  label: "Center Right" },
+  { id: "bottom-left",   label: "Bottom Left" },
+  { id: "bottom-center", label: "Bottom Center" },
+  { id: "bottom-right",  label: "Bottom Right" },
+];
+
+function posClasses(p: Position): string {
+  const v = p.startsWith("top-") ? "items-start" : p.startsWith("bottom-") ? "items-end" : "items-center";
+  const h = p.endsWith("-left") ? "justify-start text-left"
+        : p.endsWith("-right") ? "justify-end text-right"
+        : "justify-center text-center";
+  return `${v} ${h}`;
+}
 
 interface Config {
   resolution: "1080p" | "720p" | "vertical";
@@ -65,6 +89,17 @@ interface Config {
   transliterationColor: string;
   highlightColor: string;
   autoContrast: boolean;
+
+  // Positioning
+  arabicPosition: Position;
+  translationPosition: Position;
+  transliterationPosition: Position;
+
+  // Overlays
+  showLines: boolean;
+  linesCount: number;
+  showWatermark: boolean;
+  watermarkText: string;
 
   logoUrl: string;
   logoCorner: Corner;
@@ -303,24 +338,10 @@ export function RenderSurahDialog({
   const transliterationCol= cfg.autoContrast ? ensureReadable(cfg.transliterationColor, containerBgColorForContrast): cfg.transliterationColor;
   const highlightCol      = cfg.autoContrast ? ensureReadable(cfg.highlightColor, containerBgColorForContrast)      : cfg.highlightColor;
 
-  // Highlight cycling (render only)
+  // Static preview — no cycling. We always show the first verse in range.
   const totalWords = useMemo(() => verses.reduce((a, v) => a + v.words.length, 0), [verses]);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!open || totalWords === 0 || mode !== "render" || rendering) return;
-    setTick(0);
-    const i = setInterval(() => setTick((t) => (t + 1) % totalWords), 600);
-    return () => clearInterval(i);
-  }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode, rendering]);
-
-  const currentVerseIdx = useMemo(() => {
-    let count = 0;
-    for (let i = 0; i < verses.length; i++) {
-      count += verses[i].words.length;
-      if (tick < count) return i;
-    }
-    return 0;
-  }, [tick, verses]);
+  const tick = 0;
+  const currentVerseIdx = 0;
 
   const onFile = (field: "bgUrl" | "logoUrl" | "containerBgUrl", kindField?: "image" | "video") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -479,9 +500,14 @@ export function RenderSurahDialog({
         transliterationColor: transliterationCol,
         highlightColor: highlightCol,
         verses: renderVerses,
-        watermark: "Al-Din.org",
+        watermark: cfg.showWatermark ? cfg.watermarkText : "",
         logoImage: logoImg,
         logoCorner: cfg.logoCorner,
+        arabicPosition: cfg.arabicPosition,
+        translationPosition: cfg.translationPosition,
+        transliterationPosition: cfg.transliterationPosition,
+        showLines: cfg.showLines,
+        linesCount: cfg.linesCount,
         introVideo,
         outroVideo,
       };
@@ -652,6 +678,55 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, highlightColor: v }))} />
                 </Box>
 
+                {/* Positioning */}
+                <Box>
+                  <SectionTitle>Positioning</SectionTitle>
+                  <Row label="Arabic">
+                    <Select value={cfg.arabicPosition} onValueChange={(v: Position) => setCfg((c) => ({ ...c, arabicPosition: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                  <Row label="Translation">
+                    <Select value={cfg.translationPosition} onValueChange={(v: Position) => setCfg((c) => ({ ...c, translationPosition: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                  <Row label="Transliteration">
+                    <Select value={cfg.transliterationPosition} onValueChange={(v: Position) => setCfg((c) => ({ ...c, transliterationPosition: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                </Box>
+
+                {/* Overlays */}
+                <Box>
+                  <SectionTitle>Overlays</SectionTitle>
+                  <ToggleRow label="Show Lines" value={cfg.showLines}
+                    onChange={(v) => setCfg((c) => ({ ...c, showLines: v }))} />
+                  {cfg.showLines && (
+                    <SliderRow label="Line Count" value={cfg.linesCount} min={4} max={20}
+                      onChange={(v) => setCfg((c) => ({ ...c, linesCount: v }))} />
+                  )}
+                  <ToggleRow label="Show Watermark" value={cfg.showWatermark}
+                    onChange={(v) => setCfg((c) => ({ ...c, showWatermark: v }))} />
+                  {cfg.showWatermark && (
+                    <Row label="Text">
+                      <Input value={cfg.watermarkText}
+                        onChange={(e) => setCfg((c) => ({ ...c, watermarkText: e.target.value }))} />
+                    </Row>
+                  )}
+                </Box>
+
+
                 {/* Render-only: Intro/Outro + Logo */}
                 {mode === "render" && (
                   <>
@@ -813,76 +888,75 @@ export function RenderSurahDialog({
                       {!introVisible && !outroVisible && (() => {
                         const v = verses[currentVerseIdx];
                         if (!v) return null;
-                        let before = 0;
-                        for (let i = 0; i < currentVerseIdx; i++) before += verses[i].words.length;
-                        const currentWordIdx = tick - before;
+                        const currentWordIdx = -1; // static preview, no highlight
                         const activeTranslations = ecfg.translations.filter((t) => t !== "None");
                         const activeTransliterations = ecfg.transliterations.filter((t) => t !== "None");
                         const ff = pageFontFamily(ecfg.font, cfg.surahId, v.verseNumber);
 
-                        return (
-                          <div className="absolute inset-0 flex items-center justify-center p-6">
-                            <div className="w-full max-w-3xl px-6 py-6">
+                        const arabicBlock = (
+                          <div className={cn("absolute inset-0 flex p-6 pointer-events-none", posClasses(cfg.arabicPosition))}>
+                            <div dir="rtl"
+                              className={cn("max-w-[90%] leading-relaxed", fontClass(ecfg.font))}
+                              style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
+                              {v.words.map((w, i) => (
+                                <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
+                                  {w}{ecfg.font === "uthmani_v1" ? "" : " "}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
 
-                              {(() => {
-                                const hasInlineTr = !!v.wbwTranslationInline?.length;
-                                const hasInlineTl = !!v.wbwTransliterationInline?.length;
-                                const anyInline = hasInlineTr || hasInlineTl;
-
-                                if (anyInline) {
-                                  return (
-                                    <div dir="rtl" className={cn("flex flex-wrap justify-center items-start gap-x-3 gap-y-2", fontClass(ecfg.font))}>
-                                      {v.words.map((w, i) => {
-                                        const isLast = i === v.words.length - 1;
-                                        return (
-                                          <div key={i} className="flex flex-col items-center" style={{ minWidth: "2.5rem" }}>
-                                            <span style={{ color: i === currentWordIdx ? highlightCol : arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff, lineHeight: 1.6 }}>{w}</span>
-                                            {!isLast && (
-                                              <div className="flex flex-col items-center gap-y-0.5 mt-1 w-full" dir="ltr" style={{ fontFamily: "system-ui, sans-serif" }}>
-                                                {hasInlineTr && v.wbwTranslationInline?.[i] && (
-                                                  <span style={{ color: translationCol, fontSize: 12, textAlign: "center", lineHeight: 1.2 }}>{v.wbwTranslationInline[i]}</span>
-                                                )}
-                                                {hasInlineTl && v.wbwTransliterationInline?.[i] && (
-                                                  <span style={{ color: transliterationCol, fontSize: 12, fontStyle: "italic", textAlign: "center", lineHeight: 1.2 }}>{v.wbwTransliterationInline[i]}</span>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <div dir="rtl"
-                                    className={cn("leading-relaxed text-center", fontClass(ecfg.font))}
-                                    style={{ color: arabicCol, fontSize: ecfg.arabicSize, fontFamily: ff }}>
-                                    {v.words.map((w, i) => (
-                                      <span key={i} style={i === currentWordIdx ? { color: highlightCol } : undefined}>
-                                        {w}{ecfg.font === "uthmani_v1" ? "" : " "}
-                                      </span>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-
+                        const tlBlock = activeTransliterations.length > 0 && (
+                          <div className={cn("absolute inset-0 flex p-6 pointer-events-none", posClasses(cfg.transliterationPosition))}>
+                            <div className="max-w-[90%]">
                               {activeTransliterations.map((src) => (
-                                <div key={src} className="italic text-center mt-3" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
+                                <div key={src} className="italic" style={{ color: transliterationCol, fontSize: ecfg.transliterationSize }}>
                                   {extraTransliterations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        );
 
+                        const trBlock = activeTranslations.length > 0 && (
+                          <div className={cn("absolute inset-0 flex p-6 pointer-events-none", posClasses(cfg.translationPosition))}>
+                            <div className="max-w-[90%]">
                               {activeTranslations.map((src) => (
-                                <div key={src} className="text-center mt-3"
-                                  style={{ color: translationCol, fontSize: ecfg.translationSize }}>
+                                <div key={src} style={{ color: translationCol, fontSize: ecfg.translationSize }}>
                                   {extraTranslations[src]?.[v.verseNumber - 1] ?? ""}
                                 </div>
                               ))}
                             </div>
                           </div>
                         );
+
+                        return (
+                          <>
+                            {arabicBlock}
+                            {tlBlock}
+                            {trBlock}
+                          </>
+                        );
                       })()}
+
+                      {/* Lines overlay (mushaf-style guide lines) */}
+                      {cfg.showLines && (
+                        <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-6 py-8">
+                          {Array.from({ length: Math.max(2, cfg.linesCount) }).map((_, i) => (
+                            <div key={i} className="h-px bg-white/20" />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Watermark */}
+                      {cfg.showWatermark && cfg.watermarkText && (
+                        <div className="absolute bottom-2 right-3 text-[10px] sm:text-xs font-semibold text-white/85 pointer-events-none"
+                          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+                          {cfg.watermarkText}
+                        </div>
+                      )}
+
                     </>
                   )}
 
@@ -1291,6 +1365,15 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     showCopy: true,
     showShare: false,
     hoverTooltip: true,
+
+    arabicPosition: "center",
+    translationPosition: "bottom-center",
+    transliterationPosition: "bottom-center",
+
+    showLines: false,
+    linesCount: 8,
+    showWatermark: true,
+    watermarkText: "Al-Din.org",
   };
 }
 

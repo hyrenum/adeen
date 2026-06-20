@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { normalizeArabic } from '@/Top/Utility/Quran/Normalize-Arabic';
 import type { AssembledVerse } from '@/Bottom/API/Quran';
+import { useAudioLevel } from './Use-Audio-Level';
 
 function getProxyUrl(): string {
   const host = window.location.hostname;
@@ -9,6 +10,11 @@ function getProxyUrl(): string {
     return `wss://${withProxy}`;
   }
   return 'ws://localhost:8081';
+}
+
+// Exponential backoff (ms): 1s, 2s, 4s, 8s, 15s cap.
+function backoffMs(attempt: number): number {
+  return Math.min(15000, 1000 * Math.pow(2, Math.max(0, attempt - 1)));
 }
 
 interface UseDeepgramProps {
@@ -20,22 +26,37 @@ interface UseDeepgramProps {
     markWordCompleted: (surahId: number, verse: number, word: number) => void;
   };
   onVerseComplete?: (verseNumber: number) => void;
+  /** ms of inactivity (no new STT events) before auto-stop. Default 8000. */
+  silenceAutoStopMs?: number;
+  /** Maximum number of reconnect attempts before giving up. Default 5. */
+  maxReconnectAttempts?: number;
 }
 
-export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComplete }: UseDeepgramProps) {
+export function useDeepgram({
+  surahId, verses, visibleVerse, hifz, onVerseComplete,
+  silenceAutoStopMs = 8000,
+  maxReconnectAttempts = 5,
+}: UseDeepgramProps) {
 
   // ---------- STT state ----------
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'failed'>('idle');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'failed' | 'reconnecting'>('idle');
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const shouldReconnectRef = useRef(false);
+  const reconnectAttemptRef = useRef(0);
+  const pausedRef = useRef(false);
+
+  // Live audio level (volume meter + VAD-style isSilent).
+  const audioLevel = useAudioLevel({ silenceThreshold: 0.02, silenceWindowMs: silenceAutoStopMs });
 
   // ---------- Alignment state ----------
   const allWords = useMemo(() => {
@@ -87,7 +108,7 @@ export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComple
 
   // Auto-pause silence threshold (ms). After this period without new speech
   // events, recording stops to avoid hanging connections.
-  const SILENCE_AUTO_STOP_MS = 8000;
+  const SILENCE_AUTO_STOP_MS = silenceAutoStopMs;
   // How far ahead in the reference text we look for a fuzzy match.
   const SKIP_AHEAD_WINDOW = 6;
   // Max Levenshtein distance allowed for a fuzzy word match (scaled to length).
@@ -259,9 +280,21 @@ export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComple
       };
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
-        setConnectionStatus('idle');
         if (shouldReconnectRef.current && isRecording) {
-          setTimeout(() => connectWebSocket(), 2000);
+          reconnectAttemptRef.current += 1;
+          setReconnectAttempt(reconnectAttemptRef.current);
+          if (reconnectAttemptRef.current > maxReconnectAttempts) {
+            setConnectionStatus('failed');
+            setError(`Lost connection after ${maxReconnectAttempts} attempts`);
+            shouldReconnectRef.current = false;
+            return;
+          }
+          const delay = backoffMs(reconnectAttemptRef.current);
+          setConnectionStatus('reconnecting');
+          console.log(`⏳ Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+          reconnectTimeoutRef.current = setTimeout(() => connectWebSocket(), delay);
+        } else {
+          setConnectionStatus('idle');
         }
       };
       ws.onmessage = (event) => {
@@ -304,24 +337,38 @@ export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComple
   const startRecording = useCallback(async () => {
     setError(null);
     setTranscript('');
+    setIsPaused(false);
     recentTranscriptsRef.current = [];
     lastProcessedTranscriptRef.current = '';
     lastSpeechAtRef.current = Date.now();
+    reconnectAttemptRef.current = 0;
+    setReconnectAttempt(0);
     await connectWebSocket();
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       streamRef.current = stream;
+      audioLevel.attach(stream);
 
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
         : '';
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recorderRef.current = recorder;
 
+
       recorder.ondataavailable = (e) => {
+        if (pausedRef.current) return;
         if (e.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(e.data);
         }
@@ -347,6 +394,10 @@ export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComple
 
   const stopRecording = useCallback(() => {
     shouldReconnectRef.current = false;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     if (silenceTimerRef.current) {
       clearInterval(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -360,12 +411,39 @@ export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComple
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+    audioLevel.detach();
     setIsRecording(false);
+    setIsPaused(false);
+    pausedRef.current = false;
     setInterimTranscript('');
     setConnectionStatus('idle');
+    setReconnectAttempt(0);
+    reconnectAttemptRef.current = 0;
     wsRef.current = null;
     recorderRef.current = null;
     streamRef.current = null;
+  }, [audioLevel]);
+
+  const pauseRecording = useCallback(() => {
+    if (!isRecording || pausedRef.current) return;
+    pausedRef.current = true;
+    setIsPaused(true);
+    try { recorderRef.current?.pause?.(); } catch { /* noop */ }
+  }, [isRecording]);
+
+  const resumeRecording = useCallback(() => {
+    if (!isRecording || !pausedRef.current) return;
+    pausedRef.current = false;
+    setIsPaused(false);
+    lastSpeechAtRef.current = Date.now();
+    try { recorderRef.current?.resume?.(); } catch { /* noop */ }
+  }, [isRecording]);
+
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+    setInterimTranscript('');
+    lastProcessedTranscriptRef.current = '';
+    recentTranscriptsRef.current = [];
   }, []);
 
   const toggleRecording = useCallback(() => {
@@ -384,11 +462,19 @@ export function useDeepgram({ surahId, verses, visibleVerse, hifz, onVerseComple
     toggleRecording,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
+    resetTranscript,
     isRecording,
+    isPaused,
     transcript,
     interimTranscript,
     error,
     connectionStatus,
+    reconnectAttempt,
+    audioLevel: audioLevel.level,
+    audioPeak: audioLevel.peak,
+    isSilent: audioLevel.isSilent,
     sendRawAudio,
     connectWebSocket,
     disconnectWebSocket,

@@ -2,7 +2,7 @@
 // onto any CanvasRenderingContext2D / OffscreenCanvasRenderingContext2D.
 
 import { activeWordAt } from "./Timeline";
-import type { RenderScene, Timeline } from "./Types";
+import type { RenderScene, ScenePosition, Timeline } from "./Types";
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
@@ -165,72 +165,97 @@ export function paintFrame(
 
   const innerX = cx + Math.round(cw * 0.05);
   const innerW = cw - Math.round(cw * 0.05) * 2;
+  const innerY = cy + Math.round(ch * 0.05);
+  const innerH = ch - Math.round(ch * 0.05) * 2;
 
-  // -------- Measure first so we can vertically center --------
+  // -------- Mushaf-style guide lines overlay --------
+  if (scene.showLines) {
+    const n = Math.max(2, scene.linesCount ?? 8);
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < n; i++) {
+      const ly = innerY + Math.round((innerH / (n - 1)) * i);
+      ctx.beginPath();
+      ctx.moveTo(innerX, ly);
+      ctx.lineTo(innerX + innerW, ly);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // -------- Position helpers --------
+  function posXY(pos: ScenePosition | undefined, blockH: number, blockW: number): { x: number; y: number; align: "left" | "center" | "right" } {
+    const p = pos ?? "center";
+    const vy = p.startsWith("top-") ? innerY
+            : p.startsWith("bottom-") ? innerY + innerH - blockH
+            : innerY + Math.round((innerH - blockH) / 2);
+    const align: "left" | "center" | "right" =
+      p.endsWith("-left") ? "left" : p.endsWith("-right") ? "right" : "center";
+    const vx = align === "left" ? innerX
+            : align === "right" ? innerX + innerW
+            : innerX + Math.round(innerW / 2);
+    return { x: vx, y: vy, align };
+  }
+
+  // -------- Arabic (RTL, position-aware) --------
   ctx.font = `${scene.arabicSize}px "${scene.arabicFontFamily}", "Uthmani", serif`;
   const spaceWidth = ctx.measureText(" ").width;
-  const lines = layoutArabicLines(ctx, verse.words, innerW, spaceWidth);
+  const arLines = layoutArabicLines(ctx, verse.words, innerW, spaceWidth);
   const arabicLineHeight = Math.round(scene.arabicSize * 1.9);
-  let totalH = lines.length * arabicLineHeight;
+  const arBlockH = arLines.length * arabicLineHeight;
+  const arPos = posXY(scene.arabicPosition, arBlockH, innerW);
 
-  let tlLines: string[] = [];
-  if (verse.transliteration) {
-    ctx.font = `italic ${scene.transliterationSize}px "Inter", system-ui, sans-serif`;
-    tlLines = wrapPlain(ctx, verse.transliteration, innerW);
-    totalH += Math.round(scene.arabicSize * 0.4) + tlLines.length * Math.round(scene.transliterationSize * 1.5);
-  }
-  let trLines: string[] = [];
-  if (verse.translation) {
-    ctx.font = `${scene.translationSize}px "Inter", system-ui, sans-serif`;
-    trLines = wrapPlain(ctx, verse.translation, innerW);
-    totalH += Math.round(scene.translationSize * 0.5) + trLines.length * Math.round(scene.translationSize * 1.5);
-  }
-
-  let y = Math.round(cy + (ch - totalH) / 2);
-
-  // -------- Arabic (RTL, centered) --------
-  ctx.font = `${scene.arabicSize}px "${scene.arabicFontFamily}", "Uthmani", serif`;
   ctx.textBaseline = "alphabetic";
-  ctx.textAlign = "right";
   (ctx as any).direction = "rtl";
-
-  for (const line of lines) {
+  let arY = arPos.y;
+  for (const line of arLines) {
     const lineWidth = line.reduce((a, t) => a + t.width, 0) + Math.max(0, line.length - 1) * spaceWidth;
-    let xRight = innerX + (innerW + lineWidth) / 2; // center this line
+    let xRight: number;
+    if (arPos.align === "left") xRight = innerX + lineWidth;
+    else if (arPos.align === "right") xRight = innerX + innerW;
+    else xRight = innerX + (innerW + lineWidth) / 2;
+    ctx.textAlign = "right";
     for (const tok of line) {
       const isActive = tok.idx === activeWordIdx;
       ctx.fillStyle = isActive ? scene.highlightColor : scene.arabicColor;
-      ctx.fillText(tok.word, xRight, y + scene.arabicSize);
+      ctx.fillText(tok.word, xRight, arY + scene.arabicSize);
       xRight -= tok.width + spaceWidth;
     }
-    y += arabicLineHeight;
+    arY += arabicLineHeight;
   }
 
   // -------- Transliteration --------
-  if (tlLines.length) {
-    y += Math.round(scene.arabicSize * 0.4);
+  if (verse.transliteration) {
     ctx.font = `italic ${scene.transliterationSize}px "Inter", system-ui, sans-serif`;
-    ctx.textAlign = "center";
+    const tlLines = wrapPlain(ctx, verse.transliteration, innerW);
+    const tLH = Math.round(scene.transliterationSize * 1.5);
+    const tlBlockH = tlLines.length * tLH;
+    const tlPos = posXY(scene.transliterationPosition, tlBlockH, innerW);
     (ctx as any).direction = "ltr";
     ctx.fillStyle = scene.transliterationColor;
-    const tLH = Math.round(scene.transliterationSize * 1.5);
+    ctx.textAlign = tlPos.align;
+    let tlY = tlPos.y;
     for (const line of tlLines) {
-      ctx.fillText(line, innerX + innerW / 2, y + scene.transliterationSize);
-      y += tLH;
+      ctx.fillText(line, tlPos.x, tlY + scene.transliterationSize);
+      tlY += tLH;
     }
   }
 
   // -------- Translation --------
-  if (trLines.length) {
-    y += Math.round(scene.translationSize * 0.5);
+  if (verse.translation) {
     ctx.font = `${scene.translationSize}px "Inter", system-ui, sans-serif`;
-    ctx.textAlign = "center";
+    const trLines = wrapPlain(ctx, verse.translation, innerW);
+    const tLH = Math.round(scene.translationSize * 1.5);
+    const trBlockH = trLines.length * tLH;
+    const trPos = posXY(scene.translationPosition, trBlockH, innerW);
     (ctx as any).direction = "ltr";
     ctx.fillStyle = scene.translationColor;
-    const tLH = Math.round(scene.translationSize * 1.5);
+    ctx.textAlign = trPos.align;
+    let trY = trPos.y;
     for (const line of trLines) {
-      ctx.fillText(line, innerX + innerW / 2, y + scene.translationSize);
-      y += tLH;
+      ctx.fillText(line, trPos.x, trY + scene.translationSize);
+      trY += tLH;
     }
   }
 
