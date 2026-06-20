@@ -25,8 +25,10 @@ import {
 import { toast } from "@/Middle/Hook/Use-Toast";
 import { supabase } from "@/Bottom/Integration/Supabase/client";
 import { cn } from "@/Middle/Library/utils";
+import { useIsMobile } from "@/Middle/Hook/Use-Mobile";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
 
 const MAX_INPUT_CHARS = 4000;
 
