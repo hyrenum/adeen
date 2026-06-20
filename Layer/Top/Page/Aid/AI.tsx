@@ -81,6 +81,8 @@ export default function AI() {
   const [typingTarget, setTypingTarget] = useState<{ threadId: string; idx: number; full: string; shown: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
+
 
   useEffect(() => {
     if (!activeId || !threads.find((t) => t.id === activeId)) {
