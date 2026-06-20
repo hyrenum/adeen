@@ -296,8 +296,10 @@ const KalimaIndex = () => {
             onTafsirClick={() =>
               setTafsirDialog({ open: true, verseNumber: verseNum })
             }
+            onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
           />
         )}
+
 
         {/* Word container – flat top when header is present */}
         <Container
