@@ -338,21 +338,10 @@ export function RenderSurahDialog({
   const transliterationCol= cfg.autoContrast ? ensureReadable(cfg.transliterationColor, containerBgColorForContrast): cfg.transliterationColor;
   const highlightCol      = cfg.autoContrast ? ensureReadable(cfg.highlightColor, containerBgColorForContrast)      : cfg.highlightColor;
 
-  // Highlight cycling (render only)
   // Static preview — no cycling. We always show the first verse in range.
+  const totalWords = useMemo(() => verses.reduce((a, v) => a + v.words.length, 0), [verses]);
   const tick = 0;
-  useEffect(() => { /* static preview, no interval */ }, [open, totalWords, cfg.surahId, cfg.ayahStart, cfg.ayahEnd, ecfg.font, mode, rendering]);
-
   const currentVerseIdx = 0;
-
-  const currentVerseIdx = useMemo(() => {
-    let count = 0;
-    for (let i = 0; i < verses.length; i++) {
-      count += verses[i].words.length;
-      if (tick < count) return i;
-    }
-    return 0;
-  }, [tick, verses]);
 
   const onFile = (field: "bgUrl" | "logoUrl" | "containerBgUrl", kindField?: "image" | "video") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
