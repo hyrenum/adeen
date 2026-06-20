@@ -364,12 +364,7 @@ export function useDeepgram({
         : '';
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recorderRef.current = recorder;
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : '';
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      recorderRef.current = recorder;
+
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
