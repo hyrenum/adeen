@@ -279,9 +279,21 @@ export function useDeepgram({
       };
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
-        setConnectionStatus('idle');
         if (shouldReconnectRef.current && isRecording) {
-          setTimeout(() => connectWebSocket(), 2000);
+          reconnectAttemptRef.current += 1;
+          setReconnectAttempt(reconnectAttemptRef.current);
+          if (reconnectAttemptRef.current > maxReconnectAttempts) {
+            setConnectionStatus('failed');
+            setError(`Lost connection after ${maxReconnectAttempts} attempts`);
+            shouldReconnectRef.current = false;
+            return;
+          }
+          const delay = backoffMs(reconnectAttemptRef.current);
+          setConnectionStatus('reconnecting');
+          console.log(`⏳ Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+          reconnectTimeoutRef.current = setTimeout(() => connectWebSocket(), delay);
+        } else {
+          setConnectionStatus('idle');
         }
       };
       ws.onmessage = (event) => {
