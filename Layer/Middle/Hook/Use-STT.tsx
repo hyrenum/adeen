@@ -367,6 +367,7 @@ export function useDeepgram({
 
 
       recorder.ondataavailable = (e) => {
+        if (pausedRef.current) return;
         if (e.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(e.data);
         }
