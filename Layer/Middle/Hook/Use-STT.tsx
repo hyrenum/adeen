@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { normalizeArabic } from '@/Top/Utility/Quran/Normalize-Arabic';
 import type { AssembledVerse } from '@/Bottom/API/Quran';
+import { useAudioLevel } from './Use-Audio-Level';
 
 function getProxyUrl(): string {
   const host = window.location.hostname;
@@ -9,6 +10,11 @@ function getProxyUrl(): string {
     return `wss://${withProxy}`;
   }
   return 'ws://localhost:8081';
+}
+
+// Exponential backoff (ms): 1s, 2s, 4s, 8s, 15s cap.
+function backoffMs(attempt: number): number {
+  return Math.min(15000, 1000 * Math.pow(2, Math.max(0, attempt - 1)));
 }
 
 interface UseDeepgramProps {
