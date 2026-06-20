@@ -293,8 +293,10 @@ const AyahIndex = () => {
             onInfoClick={() => setSurahInfoDialog(true)}
             onAudioClick={() => setShowAudioPlayer(true)}
             onTafsirClick={() => setTafsirDialog({ open: true, verseNumber: verseNum })}
+            onRenderClick={() => setRenderDialog({ open: true, mode: "render" })}
           />
         )}
+
 
         <div ref={containerRef} className="w-full">
           {isPageLayout ? (
