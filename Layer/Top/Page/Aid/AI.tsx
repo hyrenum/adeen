@@ -247,8 +247,18 @@ export default function AI() {
   const isEmpty = messages.length === 0;
 
   const cycleSidebar = () => {
+    if (isMobile) {
+      setSidebarMode((m) => (m === "closed" ? "maximized" : "closed"));
+      return;
+    }
     setSidebarMode((m) => (m === "maximized" ? "minimized" : m === "minimized" ? "closed" : "maximized"));
   };
+
+  // On mobile, default to closed; on desktop, default to maximized
+  useEffect(() => {
+    setSidebarMode(isMobile ? "closed" : "maximized");
+  }, [isMobile]);
+
 
   const composer = (
     <div className="w-full flex gap-2 items-end">
