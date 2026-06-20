@@ -53,6 +53,7 @@ export function useDeepgram({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const shouldReconnectRef = useRef(false);
   const reconnectAttemptRef = useRef(0);
+  const pausedRef = useRef(false);
 
   // Live audio level (volume meter + VAD-style isSilent).
   const audioLevel = useAudioLevel({ silenceThreshold: 0.02, silenceWindowMs: silenceAutoStopMs });
