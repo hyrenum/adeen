@@ -336,16 +336,34 @@ export function useDeepgram({
   const startRecording = useCallback(async () => {
     setError(null);
     setTranscript('');
+    setIsPaused(false);
     recentTranscriptsRef.current = [];
     lastProcessedTranscriptRef.current = '';
     lastSpeechAtRef.current = Date.now();
+    reconnectAttemptRef.current = 0;
+    setReconnectAttempt(0);
     await connectWebSocket();
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       streamRef.current = stream;
+      audioLevel.attach(stream);
 
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : '';
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderRef.current = recorder;
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
