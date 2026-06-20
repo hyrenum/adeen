@@ -673,6 +673,55 @@ export function RenderSurahDialog({
                     onChange={(v) => setCfg((c) => ({ ...c, highlightColor: v }))} />
                 </Box>
 
+                {/* Positioning */}
+                <Box>
+                  <SectionTitle>Positioning</SectionTitle>
+                  <Row label="Arabic">
+                    <Select value={cfg.arabicPosition} onValueChange={(v: Position) => setCfg((c) => ({ ...c, arabicPosition: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                  <Row label="Translation">
+                    <Select value={cfg.translationPosition} onValueChange={(v: Position) => setCfg((c) => ({ ...c, translationPosition: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                  <Row label="Transliteration">
+                    <Select value={cfg.transliterationPosition} onValueChange={(v: Position) => setCfg((c) => ({ ...c, transliterationPosition: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                </Box>
+
+                {/* Overlays */}
+                <Box>
+                  <SectionTitle>Overlays</SectionTitle>
+                  <ToggleRow label="Show Lines" value={cfg.showLines}
+                    onChange={(v) => setCfg((c) => ({ ...c, showLines: v }))} />
+                  {cfg.showLines && (
+                    <SliderRow label="Line Count" value={cfg.linesCount} min={4} max={20}
+                      onChange={(v) => setCfg((c) => ({ ...c, linesCount: v }))} />
+                  )}
+                  <ToggleRow label="Show Watermark" value={cfg.showWatermark}
+                    onChange={(v) => setCfg((c) => ({ ...c, showWatermark: v }))} />
+                  {cfg.showWatermark && (
+                    <Row label="Text">
+                      <Input value={cfg.watermarkText}
+                        onChange={(e) => setCfg((c) => ({ ...c, watermarkText: e.target.value }))} />
+                    </Row>
+                  )}
+                </Box>
+
+
                 {/* Render-only: Intro/Outro + Logo */}
                 {mode === "render" && (
                   <>
