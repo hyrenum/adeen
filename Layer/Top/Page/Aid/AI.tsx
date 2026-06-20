@@ -298,29 +298,65 @@ export default function AI() {
     return -1;
   })();
 
+  const mobileSidebarOpen = isMobile && sidebarMode !== "closed";
+
   return (
     <Layout hideFooter>
-      <div className="flex gap-3 w-full" style={{ height: "calc(100vh - 6rem)" }}>
+      <div className="relative flex gap-3 w-full" style={{ height: "calc(100vh - 6rem)" }}>
+        {/* Mobile overlay trigger — always visible, on top of chat */}
+        {isMobile && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={cycleSidebar}
+            title={mobileSidebarOpen ? "Close sidebar" : "Open sidebar"}
+            className="absolute top-2 left-2 z-50 bg-background/80 backdrop-blur-sm border border-border/40 shadow-sm"
+          >
+            {mobileSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </Button>
+        )}
+
         {/* Sidebar */}
         {sidebarMode !== "closed" && (
-          <aside className={cn("flex flex-col shrink-0 transition-all duration-200", sidebarMode === "minimized" ? "w-12" : "w-60")}>
-            <div className="flex items-center gap-1 mb-2">
-              <Button size="icon" variant="ghost" onClick={cycleSidebar} title="Toggle sidebar">
-                {sidebarMode === "maximized" ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-              </Button>
-              {sidebarMode === "maximized" && (
-                <>
-                  <Button size="icon" variant="ghost" onClick={() => setShowSearch((s) => !s)} title="Search">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={newChat} title="New chat">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
+          <aside
+            className={cn(
+              "flex flex-col shrink-0 transition-all duration-200",
+              isMobile
+                ? "absolute inset-0 z-40 bg-background pt-14 px-3 pb-3"
+                : sidebarMode === "minimized"
+                ? "w-12"
+                : "w-60"
+            )}
+          >
+            {!isMobile && (
+              <div className="flex items-center gap-1 mb-2">
+                <Button size="icon" variant="ghost" onClick={cycleSidebar} title="Toggle sidebar">
+                  {sidebarMode === "maximized" ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+                </Button>
+                {sidebarMode === "maximized" && (
+                  <>
+                    <Button size="icon" variant="ghost" onClick={() => setShowSearch((s) => !s)} title="Search">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={newChat} title="New chat">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+            {isMobile && (
+              <div className="flex items-center gap-1 mb-2 justify-end">
+                <Button size="icon" variant="ghost" onClick={() => setShowSearch((s) => !s)} title="Search">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={newChat} title="New chat">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
-            {sidebarMode === "maximized" && showSearch && (
+            {(isMobile || sidebarMode === "maximized") && showSearch && (
               <Input
                 placeholder="Search chats..."
                 value={search}
@@ -330,48 +366,54 @@ export default function AI() {
             )}
 
             <div className="flex-1 overflow-y-auto space-y-1">
-              {filteredThreads.map((t) => (
-                <Button
-                  key={t.id}
-                  variant="ghost"
-                  active={t.id === activeId}
-                  fullWidth
-                  onClick={() => setActiveId(t.id)}
-                  className={cn(
-                    "group justify-start gap-2 !px-2 !py-2 text-sm h-auto",
-                    sidebarMode === "minimized" && "justify-center"
-                  )}
-                  title={t.title}
-                >
-                  <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  {sidebarMode === "maximized" && (
-                    <>
-                      <span className="flex-1 truncate text-left">{t.title}</span>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteThread(t.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                        aria-label="Delete chat"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </span>
-                    </>
-                  )}
-                </Button>
-              ))}
-              {sidebarMode === "maximized" && filteredThreads.length === 0 && (
+              {filteredThreads.map((t) => {
+                const showText = isMobile || sidebarMode === "maximized";
+                return (
+                  <Button
+                    key={t.id}
+                    variant="ghost"
+                    active={t.id === activeId}
+                    fullWidth
+                    onClick={() => {
+                      setActiveId(t.id);
+                      if (isMobile) setSidebarMode("closed");
+                    }}
+                    className={cn(
+                      "group justify-start gap-2 !px-2 !py-2 text-sm h-auto",
+                      !showText && "justify-center"
+                    )}
+                    title={t.title}
+                  >
+                    <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    {showText && (
+                      <>
+                        <span className="flex-1 truncate text-left">{t.title}</span>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteThread(t.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                          aria-label="Delete chat"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                );
+              })}
+              {(isMobile || sidebarMode === "maximized") && filteredThreads.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-4">No chats</p>
               )}
             </div>
           </aside>
         )}
 
-        {/* Floating reopen button when sidebar closed */}
-        {sidebarMode === "closed" && (
+        {/* Floating reopen button when sidebar closed (desktop only) */}
+        {!isMobile && sidebarMode === "closed" && (
           <div className="shrink-0">
             <Button size="icon" variant="ghost" onClick={() => setSidebarMode("maximized")} title="Open sidebar">
               <PanelLeftOpen className="h-4 w-4" />
@@ -379,8 +421,9 @@ export default function AI() {
           </div>
         )}
 
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Chat area — hidden when mobile sidebar is open */}
+        <div className={cn("flex-1 flex flex-col min-w-0", mobileSidebarOpen && "invisible")}>
+
           {isEmpty ? (
             <div className="flex-1 flex items-center justify-center px-2 sm:px-6">
               <div className="w-full max-w-2xl">{composer}</div>
