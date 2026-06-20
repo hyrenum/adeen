@@ -71,6 +71,7 @@ const AyahIndex = () => {
 
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [surahInfoDialog, setSurahInfoDialog] = useState(false);
+  const [renderDialog, setRenderDialog] = useState<{ open: boolean; ayah?: number; mode: "render" | "embed" }>({ open: false, mode: "render" });
   const [tafsirDialog, setTafsirDialog] = useState<{
     open: boolean;
     verseNumber: number;
@@ -86,6 +87,7 @@ const AyahIndex = () => {
     verseText?: string;
     translation?: string;
   }>({ open: false });
+
 
   const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
