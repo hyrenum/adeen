@@ -344,6 +344,25 @@ const KalimaIndex = () => {
           </div>
         </Container>
 
+        {/* Render / Embed actions */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setRenderDialog({ open: true, mode: "render" })}
+          >
+            Render Surah
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setRenderDialog({ open: true, mode: "embed", ayah: verseNum })}
+          >
+            Embed Ayah
+          </Button>
+        </div>
+
+
         {/* Word‑to‑word navigation */}
         <div className="flex items-center justify-between gap-4 mt-6">
           {getPrevUrl() ? (
