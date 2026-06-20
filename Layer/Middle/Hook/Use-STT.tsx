@@ -40,16 +40,22 @@ export function useDeepgram({
 
   // ---------- STT state ----------
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'failed'>('idle');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'failed' | 'reconnecting'>('idle');
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const shouldReconnectRef = useRef(false);
+  const reconnectAttemptRef = useRef(0);
+
+  // Live audio level (volume meter + VAD-style isSilent).
+  const audioLevel = useAudioLevel({ silenceThreshold: 0.02, silenceWindowMs: silenceAutoStopMs });
 
   // ---------- Alignment state ----------
   const allWords = useMemo(() => {
