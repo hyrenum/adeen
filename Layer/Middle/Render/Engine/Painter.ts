@@ -2,7 +2,7 @@
 // onto any CanvasRenderingContext2D / OffscreenCanvasRenderingContext2D.
 
 import { activeWordAt } from "./Timeline";
-import type { RenderScene, Timeline } from "./Types";
+import type { RenderScene, ScenePosition, Timeline } from "./Types";
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
