@@ -1326,6 +1326,15 @@ function makeDefaults(surahId: number, ayahNumber: number | undefined, mode: "re
     showCopy: true,
     showShare: false,
     hoverTooltip: true,
+
+    arabicPosition: "center",
+    translationPosition: "bottom-center",
+    transliterationPosition: "bottom-center",
+
+    showLines: false,
+    linesCount: 8,
+    showWatermark: true,
+    watermarkText: "Al-Din.org",
   };
 }
 
