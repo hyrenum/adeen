@@ -1,0 +1,1 @@
+const e=["Say, I seek refuge in the Lord of mankind,","The Sovereign of mankind,","The God of mankind,","From the evil of the retreating whisperer,","Who whispers into the breasts of mankind,","From among the jinn and mankind."];export{e as default};
