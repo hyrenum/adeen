@@ -394,6 +394,10 @@ export function useDeepgram({
 
   const stopRecording = useCallback(() => {
     shouldReconnectRef.current = false;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     if (silenceTimerRef.current) {
       clearInterval(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -407,12 +411,39 @@ export function useDeepgram({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+    audioLevel.detach();
     setIsRecording(false);
+    setIsPaused(false);
+    pausedRef.current = false;
     setInterimTranscript('');
     setConnectionStatus('idle');
+    setReconnectAttempt(0);
+    reconnectAttemptRef.current = 0;
     wsRef.current = null;
     recorderRef.current = null;
     streamRef.current = null;
+  }, [audioLevel]);
+
+  const pauseRecording = useCallback(() => {
+    if (!isRecording || pausedRef.current) return;
+    pausedRef.current = true;
+    setIsPaused(true);
+    try { recorderRef.current?.pause?.(); } catch { /* noop */ }
+  }, [isRecording]);
+
+  const resumeRecording = useCallback(() => {
+    if (!isRecording || !pausedRef.current) return;
+    pausedRef.current = false;
+    setIsPaused(false);
+    lastSpeechAtRef.current = Date.now();
+    try { recorderRef.current?.resume?.(); } catch { /* noop */ }
+  }, [isRecording]);
+
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+    setInterimTranscript('');
+    lastProcessedTranscriptRef.current = '';
+    recentTranscriptsRef.current = [];
   }, []);
 
   const toggleRecording = useCallback(() => {
@@ -431,11 +462,19 @@ export function useDeepgram({
     toggleRecording,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
+    resetTranscript,
     isRecording,
+    isPaused,
     transcript,
     interimTranscript,
     error,
     connectionStatus,
+    reconnectAttempt,
+    audioLevel: audioLevel.level,
+    audioPeak: audioLevel.peak,
+    isSilent: audioLevel.isSilent,
     sendRawAudio,
     connectWebSocket,
     disconnectWebSocket,
