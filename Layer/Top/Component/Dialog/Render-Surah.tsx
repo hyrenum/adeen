@@ -36,6 +36,30 @@ import {
 // ====================== Types ======================
 type Corner = "tl" | "tr" | "bl" | "br";
 type RenderFont = "uthmani" | "indopak" | "uthmani_v1" | "uthmani_v2" | "uthmani_v4";
+type Position =
+  | "top-left" | "top-center" | "top-right"
+  | "center-left" | "center" | "center-right"
+  | "bottom-left" | "bottom-center" | "bottom-right";
+
+const POSITIONS: { id: Position; label: string }[] = [
+  { id: "top-left",      label: "Top Left" },
+  { id: "top-center",    label: "Top Center" },
+  { id: "top-right",     label: "Top Right" },
+  { id: "center-left",   label: "Center Left" },
+  { id: "center",        label: "Center" },
+  { id: "center-right",  label: "Center Right" },
+  { id: "bottom-left",   label: "Bottom Left" },
+  { id: "bottom-center", label: "Bottom Center" },
+  { id: "bottom-right",  label: "Bottom Right" },
+];
+
+function posClasses(p: Position): string {
+  const v = p.startsWith("top-") ? "items-start" : p.startsWith("bottom-") ? "items-end" : "items-center";
+  const h = p.endsWith("-left") ? "justify-start text-left"
+        : p.endsWith("-right") ? "justify-end text-right"
+        : "justify-center text-center";
+  return `${v} ${h}`;
+}
 
 interface Config {
   resolution: "1080p" | "720p" | "vertical";
@@ -65,6 +89,17 @@ interface Config {
   transliterationColor: string;
   highlightColor: string;
   autoContrast: boolean;
+
+  // Positioning
+  arabicPosition: Position;
+  translationPosition: Position;
+  transliterationPosition: Position;
+
+  // Overlays
+  showLines: boolean;
+  linesCount: number;
+  showWatermark: boolean;
+  watermarkText: string;
 
   logoUrl: string;
   logoCorner: Corner;
