@@ -20,7 +20,8 @@ export function AyahView({
   hoverTransliteration,
   inlineTransliteration,
   inlineTranslation,
-}: AyahViewProps & { inlineTranslation?: string }) {
+  flatTopOnFirst = true,
+}: AyahViewProps & { inlineTranslation?: string; flatTopOnFirst?: boolean }) {
   if (!verses || !Array.isArray(verses)) {
     console.warn('AyahView: verses is undefined or not an array', verses);
     return null;
@@ -29,7 +30,14 @@ export function AyahView({
   const showTransliteration = selectedAyahTransliterator !== "None";
 
   return (
-    <div className="space-y-4 [&>*:first-child]:!rounded-tl-none [&>*:first-child]:!rounded-tr-none">
+    <div
+      className={
+        flatTopOnFirst
+          ? "space-y-4 [&>*:first-child]:!rounded-tl-none [&>*:first-child]:!rounded-tr-none"
+          : "space-y-4"
+      }
+    >
+
 
       {verses.map((verse) => (
         <VerseCard
