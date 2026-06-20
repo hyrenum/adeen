@@ -23,12 +23,14 @@ import { useReadingSession } from "@/Middle/Hook/Use-Reading-Session";
 import { useQuranGoals } from "@/Middle/Hook/Use-Quran-Goals";
 import { Button } from "@/Top/Component/UI/button";
 import { TafsirDialog } from "@/Top/Component/Dialog/Tafsir";
+import { RenderSurahDialog } from "@/Top/Component/Dialog/Render-Surah";
 import { Container } from "@/Top/Component/UI/Container";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Alert, AlertDescription } from "@/Top/Component/UI/Alert";
 import { AudioControls } from "@/Top/Component/Quran/Record";
 import { useDeepgram } from "@/Middle/Hook/Use-STT";
+
 const AyahIndex = () => {
   const { id, verseId } = useParams<{ id: string; verseId: string }>();
   const [searchParams] = useSearchParams();
