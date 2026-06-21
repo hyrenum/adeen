@@ -1,50 +1,13 @@
 #!/usr/bin/env node
-/**
- * Multi-Language Bulk Ingestion Engine (Russian, Swahili, Urdu)
- * Configured with extreme concurrency (Batch Size: 32).
- */
 import fs from "node:fs/promises";
 import path from "node:path";
 
 const TAFSIR_TARGETS = [
-  // Russian
   {
-    id: "170",
-    slug: "ru-tafseer-al-saddi",
-    lang: "Russian",
-    dirName: "Russian-Saddi-Tafseer"
-  },
-  // Swahili
-  {
-    id: "231",
-    slug: "dr-abdullah-muhammad-abu-bakr-and-sheikh-nasir-khamis",
-    lang: "Swahili",
-    dirName: "Swahili-AbuBakr-Khamis-Tafseer"
-  },
-  // Urdu
-  {
-    id: "157",
-    slug: "tafsir-fe-zalul-quran-syed-qatab",
-    lang: "Urdu",
-    dirName: "Urdu-Zilal-Tafseer"
-  },
-  {
-    id: "160",
-    slug: "tafseer-ibn-e-kaseer-urdu",
-    lang: "Urdu",
-    dirName: "Urdu-Ibn-Kathir-Tafseer"
-  },
-  {
-    id: "159",
-    slug: "tafsir-bayan-ul-quran",
-    lang: "Urdu",
-    dirName: "Urdu-Bayan-Tafseer"
-  },
-  {
-    id: "818",
-    slug: "tazkiru-quran-ur",
-    lang: "Urdu",
-    dirName: "Urdu-Tazkir-Tafseer"
+    id: "804", // 🛠️ Corrected from 760 to 804
+    slug: "kurd-tafsir-rebar",
+    lang: "Kurdish",
+    dirName: "Kurdish-Rebar-Tafseer"
   }
 ];
 
@@ -107,7 +70,7 @@ async function processAyah(targetId, targetSlug, surahId, ayahId, targetDir) {
 }
 
 async function main() {
-  console.log("🔥 Starting Multi-Language Bulk Ingestion Sequence...");
+  console.log("🔥 Starting Kurdish Tafsir Ingestion Sequence...");
   console.log(`Concurrency: ${BATCH_SIZE} requests/batch\n`);
 
   for (const book of TAFSIR_TARGETS) {
@@ -126,7 +89,6 @@ async function main() {
 
       for (let i = 1; i <= totalAyahs; i += BATCH_SIZE) {
         const batch = [];
-        
         for (let j = 0; j < BATCH_SIZE && (i + j) <= totalAyahs; j++) {
           batch.push(i + j);
         }
@@ -145,11 +107,6 @@ async function main() {
     }
     console.log(`\n✅ Finished writing all files for ${book.dirName}.\n`);
   }
-
-  console.log("🏁 GLOBAL STRATEGIC DATA COLLECTION COMPLETE!");
 }
 
-main().catch((err) => {
-  console.error("Fatal breakdown inside the multi-language pipeline:", err);
-  process.exit(1);
-});
+main().catch(console.error);
