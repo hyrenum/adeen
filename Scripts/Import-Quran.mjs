@@ -1,112 +1,116 @@
 #!/usr/bin/env node
+/**
+ * Global Translation Mass Ingestion Engine (Quran.com API v4)
+ * Pulls translations in batches of 57 and formats output files as flat arrays: ["verse1", "verse2"]
+ * Replaces <sup foot_note=X>Y</sup> tags with standardized sequential "Footnote-#" strings.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const TAFSIR_TARGETS = [
-  {
-    id: "804", // 🛠️ Corrected from 760 to 804
-    slug: "kurd-tafsir-rebar",
-    lang: "Kurdish",
-    dirName: "Kurdish-Rebar-Tafseer"
-  }
-];
-
-const BATCH_SIZE = 32; 
-
-const SURAH_VERSE_COUNTS = [
-  7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135,
-  112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
-  54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13,
-  14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42,
-  29, 19, 36, 25, 22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11,
-  11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6
-];
-
+const BATCH_SIZE = 57; 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-async function fetchVerseTafsir(targetId, targetSlug, chapter, verse, retryCount = 0) {
-  const url = `https://quran.com/api/proxy/content/api/qdc/tafsirs/${targetId}/by_ayah/${chapter}:${verse}?locale=en`;
+// Helper: Sanitize paths cleanly to prevent runtime directory string execution breaks
+function sanitizePathName(name) {
+  return name.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim().replace(/\s+/g, "-");
+}
+
+async function fetchSurahTranslationBatch(translationId, surahId) {
+  // Ceiling set to 300 to pull the whole chapter in a single pass cleanly
+  const url = `https://api.quran.com/api/v4/verses/by_chapter/${surahId}?translations=${translationId}&per_page=300`;
+
   try {
     const response = await fetch(url, {
-      headers: {
+      headers: { 
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': `https://quran.com/${chapter}:${verse}/tafsir/${targetSlug}`
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FrameworkFinderIngestEngine/1.0'
       }
     });
 
-    if (response.status === 429) {
-      const waitTime = 12000 * (retryCount + 1);
-      console.log(`\n⚠️ Rate limited on ${chapter}:${verse}. Cooling down for ${waitTime}ms...`);
-      await delay(waitTime);
-      return fetchVerseTafsir(targetId, targetSlug, chapter, verse, retryCount + 1);
-    }
-
-    if (!response.ok) {
-      console.log(`\n❌ Server returned status ${response.status} for ${chapter}:${verse}`);
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
-    return data.tafsir?.text || null;
-  } catch (err) {
-    if (retryCount < 2) {
-      await delay(3000);
-      return fetchVerseTafsir(targetId, targetSlug, chapter, verse, retryCount + 1);
+    
+    if (data.verses && Array.isArray(data.verses)) {
+      let footnoteCounter = 1;
+
+      return data.verses
+        .sort((a, b) => a.verse_number - b.verse_number)
+        .map(verse => {
+          let cleanText = verse.translations?.[0]?.text || "";
+          
+          // Match all custom <sup> variations and swap them out for "Footnote-#" format sequentially
+          cleanText = cleanText.replace(/<sup[^>]*>.*?<\/sup>/g, () => {
+            return `Footnote-${footnoteCounter++}`;
+          });
+
+          return cleanText;
+        });
     }
+    return null;
+  } catch (err) {
     return null;
   }
 }
 
-async function processAyah(targetId, targetSlug, surahId, ayahId, targetDir) {
-  const textContent = await fetchVerseTafsir(targetId, targetSlug, surahId, ayahId);
-  if (textContent) {
-    const payload = [ textContent ];
-    const fileDest = path.join(targetDir, `${ayahId}.json`);
-    await fs.writeFile(fileDest, JSON.stringify(payload, null, 2), "utf8");
-    return true;
-  }
-  return false;
-}
-
 async function main() {
-  console.log("🔥 Starting Kurdish Tafsir Ingestion Sequence...");
-  console.log(`Concurrency: ${BATCH_SIZE} requests/batch\n`);
-
-  for (const book of TAFSIR_TARGETS) {
-    const baseOutputDir = path.resolve(`Layer/Bottom/Data/Quran/Surah/Tafsir/${book.lang}/${book.dirName}`);
-    
-    console.log(`================================================================`);
-    console.log(`📚 BEGINNING INGESTION FOR [${book.lang.toUpperCase()}]: ${book.dirName}`);
-    console.log(`================================================================\n`);
-
-    for (let surahId = 1; surahId <= 114; surahId++) {
-      const totalAyahs = SURAH_VERSE_COUNTS[surahId - 1];
-      const targetDir = path.join(baseOutputDir, String(surahId));
-      
-      await fs.mkdir(targetDir, { recursive: true });
-      console.log(`📁 Processing Surah ${surahId} (${totalAyahs} Ayahs total)`);
-
-      for (let i = 1; i <= totalAyahs; i += BATCH_SIZE) {
-        const batch = [];
-        for (let j = 0; j < BATCH_SIZE && (i + j) <= totalAyahs; j++) {
-          batch.push(i + j);
-        }
-
-        process.stdout.write(`  ➜ [${book.id}] Fetching Ayahs [${batch[0]}...${batch[batch.length - 1]}]... `);
-
-        const results = await Promise.all(
-          batch.map(ayahId => processAyah(book.id, book.slug, surahId, ayahId, targetDir))
-        );
-
-        const savedCount = results.filter(Boolean).length;
-        console.log(`Done! (${savedCount}/${batch.length} saved) 🎉`);
-
-        await delay(350);
-      }
-    }
-    console.log(`\n✅ Finished writing all files for ${book.dirName}.\n`);
+  const catalogPath = path.resolve("Layer/Bottom/Data/Quran/Surah/Translation/Available-Translations.json");
+  
+  try {
+    await fs.access(catalogPath);
+  } catch {
+    console.error(`❌ Missing resource file. Please generate ${catalogPath} first via your discovery script!`);
+    process.exit(1);
   }
+
+  const translations = JSON.parse(await fs.readFile(catalogPath, "utf8"));
+  console.log(`🚀 Master file resolved: Found ${translations.length} translations inside queue.`);
+  console.log(`⚡ Execution Concurrency Limit: ${BATCH_SIZE} targets/batch loop\n`);
+
+  // Outer loop processes individual books sequentially to keep directory creation stable
+  for (let tIndex = 0; tIndex < translations.length; tIndex++) {
+    const target = translations[tIndex];
+    const cleanLang = target.language_name ? target.language_name.charAt(0).toUpperCase() + target.language_name.slice(1) : "Unknown";
+    const cleanDirName = sanitizePathName(target.name || target.slug);
+    
+    const baseOutputDir = path.resolve(`Layer/Bottom/Data/Quran/Surah/Translation/${cleanLang}/${cleanDirName}`);
+    await fs.mkdir(baseOutputDir, { recursive: true });
+
+    console.log(`----------------------------------------------------------------`);
+    console.log(`📚 BOOK [${tIndex + 1}/${translations.length}]: ${cleanDirName} (${cleanLang})`);
+    console.log(`📁 Destination: ${baseOutputDir}`);
+    console.log(`----------------------------------------------------------------`);
+
+    // Process all 114 chapters in chunks of 57
+    for (let currentSurah = 1; currentSurah <= 114; currentSurah += BATCH_SIZE) {
+      const currentBatch = [];
+      for (let offset = 0; offset < BATCH_SIZE && (currentSurah + offset) <= 114; offset++) {
+        currentBatch.push(currentSurah + offset);
+      }
+
+      process.stdout.write(`  ➜ Fetching Surah Chapters [${currentBatch[0]}...${currentBatch[currentBatch.length - 1]}]... `);
+
+      const results = await Promise.all(
+        currentBatch.map(async (surahId) => {
+          const content = await fetchSurahTranslationBatch(target.id, surahId);
+          if (content) {
+            const fileDest = path.join(baseOutputDir, `${surahId}.json`);
+            await fs.writeFile(fileDest, JSON.stringify(content, null, 2), "utf8");
+            return true;
+          }
+          return false;
+        })
+      );
+
+      const successfulWrites = results.filter(Boolean).length;
+      console.log(`Done (${successfulWrites}/${currentBatch.length} saved)`);
+
+      // Gentle rest delay between batch sets to protect against edge proxy throttling
+      await delay(250);
+    }
+    console.log(`✅ Completed Ingestion for ${cleanDirName}\n`);
+  }
+
+  console.log("🏁 GLOBAL DATA EXTRACTION COMPLETE!");
 }
 
 main().catch(console.error);
