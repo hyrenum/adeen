@@ -143,6 +143,11 @@ const App = () => (
                   <Route path="/Aid/Pillars/:id" element={<PillarDetail />} />
                   <Route path="/Aid/Articles" element={<ArticlesIndex />} />
                   <Route path="/Aid/Articles/:id" element={<ArticleDetail />} />
+                  <Route path="/Aid/Schools" element={<Schools />} />
+                  <Route path="/Aid/Q-and-A" element={<QA />} />
+                  <Route path="/Aid/Q-and-A/:id" element={<QADetail />} />
+
+
 
 
                   {/* General */}
