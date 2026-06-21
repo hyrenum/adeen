@@ -55,6 +55,9 @@ import PillarsIndex       from "@/Top/Page/Aid/Pillars/Index";
 import PillarDetail       from "@/Top/Page/Aid/Pillars/Detail";
 import ArticlesIndex      from "@/Top/Page/Aid/Articles/Index";
 import ArticleDetail      from "@/Top/Page/Aid/Articles/Detail";
+import Schools            from "@/Top/Page/Aid/Schools";
+import QA                 from "@/Top/Page/Aid/QA";
+import QADetail           from "@/Top/Page/Aid/QADetail";
 
 
 // General
@@ -140,6 +143,11 @@ const App = () => (
                   <Route path="/Aid/Pillars/:id" element={<PillarDetail />} />
                   <Route path="/Aid/Articles" element={<ArticlesIndex />} />
                   <Route path="/Aid/Articles/:id" element={<ArticleDetail />} />
+                  <Route path="/Aid/Schools" element={<Schools />} />
+                  <Route path="/Aid/Q-and-A" element={<QA />} />
+                  <Route path="/Aid/Q-and-A/:id" element={<QADetail />} />
+
+
 
 
                   {/* General */}

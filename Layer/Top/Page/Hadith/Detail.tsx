@@ -43,11 +43,11 @@ const Detail = () => {
   // Synchronous data retrieval
   const collection = Collection ? getCollection(Collection) : null;
   const chapter = Collection && Chapter ? getChapter(Collection, Chapter) : null;
-  const hadithIdNum = HadithId ? parseInt(HadithId, 10) : 0;
-  const hadith = chapter?.hadith?.find(h => h.id === hadithIdNum);
+  const hadithIdStr = HadithId ?? "";
+  const hadith = chapter?.hadith?.find(h => h.id === hadithIdStr);
 
   // Navigation within chapter
-  const currentIndex = chapter?.hadith.findIndex(h => h.id === hadithIdNum) ?? -1;
+  const currentIndex = chapter?.hadith.findIndex(h => h.id === hadithIdStr) ?? -1;
   const prevHadith = currentIndex > 0 ? chapter?.hadith[currentIndex - 1] : null;
   const nextHadith = currentIndex !== -1 && currentIndex < (chapter?.hadith.length ?? 0) - 1
     ? chapter?.hadith[currentIndex + 1]
