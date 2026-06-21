@@ -55,6 +55,9 @@ import PillarsIndex       from "@/Top/Page/Aid/Pillars/Index";
 import PillarDetail       from "@/Top/Page/Aid/Pillars/Detail";
 import ArticlesIndex      from "@/Top/Page/Aid/Articles/Index";
 import ArticleDetail      from "@/Top/Page/Aid/Articles/Detail";
+import Schools            from "@/Top/Page/Aid/Schools";
+import QA                 from "@/Top/Page/Aid/QA";
+import QADetail           from "@/Top/Page/Aid/QADetail";
 
 
 // General
