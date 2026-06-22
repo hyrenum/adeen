@@ -1,6 +1,6 @@
 // Lightweight client-side BM25 retrieval over the prebuilt RAG corpus.
 // Corpus is externalized via lovable-assets and lazy-loaded on first use.
-import asset from "/public/RAG/Corpus.json.asset.json";
+import asset from "@/Bottom/Data/RAG/Corpus.asset.json";
 
 export type CorpusDoc = { i: number; s: string; r: string; t: string };
 export type RetrievedDoc = CorpusDoc & { score: number };
