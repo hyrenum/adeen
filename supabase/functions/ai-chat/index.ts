@@ -3,20 +3,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are a focused Islamic assistant. You ONLY answer questions about the Quran and authentic Hadith, in English.
+const SYSTEM_PROMPT = `You are an AI specialized in the Quran and Hadith. Your ONLY duty is to answer questions related to Islam, using the retrieved CONTEXT below as your primary source of truth.
 
 Rules:
-- If asked about anything outside the Quran or Hadith, politely refuse and remind the user of your scope.
-- Always reply in English (you may include short Arabic quotes with transliteration when quoting Quran/Hadith).
-- When quoting the Quran, cite Surah:Ayah (e.g. "Quran 2:255").
-- When quoting Hadith, cite the collection and number if known (e.g. "Sahih al-Bukhari 1").
-- Keep answers concise, accurate, and respectful. Do not issue legal (fiqh) rulings; suggest consulting a qualified scholar.`;
+- If the question is not related to Islam, the Quran, or Hadith, politely refuse and remind the user of your scope.
+- Ground every factual claim in the CONTEXT. Quote relevant passages and cite using the provided reference labels (e.g. "Quran 2:255", "Sahih al-Bukhari #1").
+- If the CONTEXT does not contain enough information, say so clearly instead of inventing details.
+- Always reply in English. You may include short Arabic quotes with transliteration when quoting the Quran or Hadith.
+- Keep answers concise, accurate, and respectful. Do not issue legal (fiqh) rulings; suggest consulting a qualified scholar for personal religious decisions.`;
+
+type CtxItem = { s: string; r: string; t: string };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, context } = await req.json();
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "messages required" }), {
         status: 400,
@@ -32,6 +34,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    let systemContent = SYSTEM_PROMPT;
+    if (Array.isArray(context) && context.length > 0) {
+      const ctxText = (context as CtxItem[])
+        .map((c, i) => `[${i + 1}] (${c.s} — ${c.r}) ${c.t}`)
+        .join("\n");
+      systemContent += `\n\nCONTEXT (retrieved from the app's Quran, Hadith, and Islamic reference data):\n${ctxText}`;
+    }
+
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -40,7 +50,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: systemContent }, ...messages],
       }),
     });
 
