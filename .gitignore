@@ -25,3 +25,6 @@ Layer/Bottom/Data/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# RAG raw corpus (use lovable-assets to externalize, then reference .asset.json)
+Layer/Bottom/Data/RAG/Corpus.json

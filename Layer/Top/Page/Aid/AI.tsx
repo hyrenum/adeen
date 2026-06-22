@@ -28,6 +28,7 @@ import { cn } from "@/Middle/Library/utils";
 import { useIsMobile } from "@/Middle/Hook/Use-Mobile";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { search as ragSearch, prefetch as ragPrefetch } from "@/Bottom/API/RAG";
 
 
 const MAX_INPUT_CHARS = 4000;
@@ -82,6 +83,8 @@ export default function AI() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
+
+  useEffect(() => { ragPrefetch(); }, []);
 
 
   useEffect(() => {
@@ -151,13 +154,22 @@ export default function AI() {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      // RAG: retrieve relevant passages for the latest user query
+      const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content || "";
+      let context: { s: string; r: string; t: string }[] = [];
+      try {
+        const hits = await ragSearch(lastUser, 8);
+        context = hits.map(({ s, r, t }) => ({ s, r, t }));
+      } catch (err) {
+        console.warn("RAG retrieval failed:", err);
+      }
       const res = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ messages: msgs }),
+        body: JSON.stringify({ messages: msgs, context }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Request failed");
