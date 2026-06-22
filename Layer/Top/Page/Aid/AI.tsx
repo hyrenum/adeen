@@ -84,6 +84,8 @@ export default function AI() {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
 
+  useEffect(() => { ragPrefetch(); }, []);
+
 
   useEffect(() => {
     if (!activeId || !threads.find((t) => t.id === activeId)) {
