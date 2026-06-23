@@ -26,5 +26,5 @@ Layer/Bottom/Data/
 .DS_Store
 Thumbs.db
 
-# RAG raw corpus (use lovable-assets to externalize, then reference .asset.json)
-Layer/Bottom/Data/RAG/Corpus.json
+# RAG corpus — built at deploy time, served from public/
+public/RAG/Corpus.json
