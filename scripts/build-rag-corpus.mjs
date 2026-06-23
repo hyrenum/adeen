@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DATA = path.join(ROOT, "Layer/Bottom/Data");
-const OUT_DIR = path.join(ROOT, "Layer/Bottom/Data/RAG");
+const OUT_DIR = path.join(ROOT, "public/RAG");
 const OUT_FILE = path.join(OUT_DIR, "Corpus.json");
 
 const corpus = [];
