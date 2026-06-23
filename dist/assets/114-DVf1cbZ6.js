@@ -1,1 +1,0 @@
-const e=["Say, I seek refuge in the Lord of Humanity,","the Sovereign of Humanity,","the God of Humanity,","from the evil of the retreating whisperer,","who whispers into the hearts of Humanity","from among the jinn and Humanity."];export{e as default};

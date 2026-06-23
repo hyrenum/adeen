@@ -1,1 +1,0 @@
-const e=['Say, "He is Allah, the One."',"Allah, the All-Sustaining.","He neither begot, nor was He begotten,","and there is no one equivalent to Him."];export{e as default};
