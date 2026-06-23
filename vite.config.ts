@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB for large font files
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 20MB for large chunks
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === "navigate",
