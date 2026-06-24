@@ -7,8 +7,7 @@ __pycache__/
 
 # Node modules
 node_modules/
-Layer/Bottom/Data/
-
+Server/Data
 # Local Generated App Storage / Database Layers
 
 # Large model files

@@ -16,10 +16,11 @@
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./Layer/*"
-      ]
+      "@/*": ["./Client/*"],
+      "Client/*": ["./Client/*"],
+      "Server/*": ["./Server/*"]
     },
     "skipLibCheck": true,
     "strict": false,
@@ -27,7 +28,8 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "Layer",
+    "Client/**/*",
+    "Server/**/*",
     "vite-env.d.ts"
   ]
 }

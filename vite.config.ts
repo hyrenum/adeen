@@ -6,12 +6,19 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Tells Vite to look inside Client/Public instead of the default root "public" folder
+  publicDir: path.resolve(__dirname, "./Client/Public"),
+  
   server: {
     host: "::",
     port: 8080,
     watch: {
-      // Prevents Vite from indexing the 700k+ generated static JSON files, stopping OOM errors
-      ignored: ["**/Layer/Bottom/Data/**"],
+      // Prevents Vite from indexing database data and generated RAG artifacts, stopping OOM errors/deadlocks
+      ignored: [
+        "**/Server/Database/**", 
+        "**/Server/Data/RAG/**", 
+        "**/Server/Data/Hadith/**" // 🌟 ADDED: Stops Vite from choking on your large dataset
+      ],
     },
   },
   plugins: [
@@ -70,8 +77,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Quran JSON data files — cache forever, they rarely change
-            urlPattern: /\/Layer\/Bottom\/Data\/.+\.json$/i,
+            // Cache JSON data files forever, they rarely change
+            urlPattern: /\/(\/Server\/Database)\/.+\.json$/i,
             handler: "CacheFirst",
             options: {
               cacheName: "quran-data-cache",
@@ -82,8 +89,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Quran font files
-            urlPattern: /\/Layer\/Top\/Asset\/Font\/.+\.(woff2?|ttf|eot)$/i,
+            // Font files
+            urlPattern: /\.(woff2?|ttf|eot)$/i,
             handler: "CacheFirst",
             options: {
               cacheName: "font-cache",
@@ -94,8 +101,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Quran audio files
-            urlPattern: /\/Layer\/Bottom\/Data\/Quran\/Audio\/.+\.mp3$/i,
+            // Audio files
+            urlPattern: /\.mp3$/i,
             handler: "CacheFirst",
             options: {
               cacheName: "audio-cache",
@@ -145,8 +152,22 @@ export default defineConfig(({ mode }) => ({
     }),
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./Layer"),
-    },
+    alias: [
+      {
+        // Matches exact imports starting with 'Client/' to resolve to the Client folder
+        find: /^Client\/(.*)/,
+        replacement: path.resolve(__dirname, "Client/$1"),
+      },
+      {
+        // Matches exact imports starting with 'Server/' to resolve to the Server folder
+        find: /^Server\/(.*)/,
+        replacement: path.resolve(__dirname, "Server/$1"),
+      },
+      {
+        // Keeps standard fallback if you use it in parts of Client
+        find: "@",
+        replacement: path.resolve(__dirname, "./Client"),
+      }
+    ],
   },
 }));
