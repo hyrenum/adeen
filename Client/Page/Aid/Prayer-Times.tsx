@@ -87,34 +87,38 @@ export default function PrayerPage() {
           />
         ))}
 
+        {/* Imsak & Midnight side by side, matching PrayerCard layout */}
+        {(timings.Imsak || timings.Midnight) && (
+          <div className="grid grid-cols-2 gap-3">
+            {timings.Imsak && (
+              <Container className="!p-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Imsak</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {formatTime(timings.Imsak, settings.timeFormat)}
+                  </p>
+                </div>
+              </Container>
+            )}
+            {timings.Midnight && (
+              <Container className="!p-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Midnight</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {formatTime(timings.Midnight, settings.timeFormat)}
+                  </p>
+                </div>
+              </Container>
+            )}
+          </div>
+        )}
+
         {/* Footer: method and manual location indicator */}
         <p className="text-xs text-muted-foreground text-center pt-2">
           {methodLabel}
           {isUsingSavedLocation && " • Manual Location"}
         </p>
       </Container>
-
-      {/* Imsak & Midnight as two side-by-side containers */}
-      {(timings.Imsak || timings.Midnight) && (
-        <div className="grid grid-cols-2 gap-3 w-full mt-3">
-          {timings.Imsak && (
-            <Container className="!p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Imsak</p>
-              <p className="font-semibold tabular-nums text-lg">
-                {formatTime(timings.Imsak, settings.timeFormat)}
-              </p>
-            </Container>
-          )}
-          {timings.Midnight && (
-            <Container className="!p-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Midnight</p>
-              <p className="font-semibold tabular-nums text-lg">
-                {formatTime(timings.Midnight, settings.timeFormat)}
-              </p>
-            </Container>
-          )}
-        </div>
-      )}
     </Layout>
   );
 }

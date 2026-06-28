@@ -1,5 +1,5 @@
 import { ReactNode, lazy, Suspense } from "react";
-import { Header } from "Client/Component/Layout/Header";
+import { Header } from "Client/Component/Layout/Header/Index.tsx";
 import { PageTransition } from "Client/Component/Page-Transition";
 
 const SettingsSidebar = lazy(() => import("Client/Component/Settings/Index").then(module => ({ default: module.SettingsSidebar })));

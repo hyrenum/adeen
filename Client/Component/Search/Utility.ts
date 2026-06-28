@@ -124,7 +124,7 @@ function getAidIndex(): AidEntry[] {
         title: cat.name,
         subtitle: "Arabic Category",
         arabicName: cat.arabicName,
-        path: `/Aid/Arabic/${cat.id}`,
+        path: `/Aid/Arabic/${cat.title}`,
         type: "Arabic",
         searchable: [cat.name, cat.arabicName, cat.id],
       });

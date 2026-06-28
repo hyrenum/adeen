@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
 import { Layout } from "Client/Component/Layout/Index";
 import { Card } from "Client/Component/UI/Card";
-import { getArabicCategories } from "Server/API/Arabic";
+import { getVocabulary } from "Server/API/Aid";
 
 export default function ArabicIndex() {
-  const categories = getArabicCategories();
+  const vocabulary = getVocabulary();
 
   const extra = [
-    { to: "/Aid/Alphabet", name: "Alphabet" },
-    { to: "/Aid/Tajweed", name: "Tajweed" },
+    { to: "/Aid/Arabic/Alphabet", name: "Alphabet" },
+    { to: "/Aid/Arabic/Tajweed", name: "Tajweed" },
   ];
 
   return (
@@ -23,11 +23,14 @@ export default function ArabicIndex() {
             </Card>
           </Link>
         ))}
-        {categories.map((c) => (
-          <Link key={c.id} to={`/Aid/Arabic/${c.id}`}>
+        {vocabulary.map((v) => (
+          <Link key={v.id} to={`/Aid/Arabic/${v.id}`}>
             <Card className="p-4 text-center group">
               <div className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
-                {c.name}
+                {v.name}
+              </div>
+              <div className="font-arabic text-lg mt-1 text-muted-foreground" dir="rtl">
+                {v.arabicName}
               </div>
             </Card>
           </Link>

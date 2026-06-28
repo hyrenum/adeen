@@ -10,14 +10,18 @@ export default defineConfig(({ mode }) => ({
   publicDir: path.resolve(__dirname, "./Client/Public"),
   
   server: {
-    host: "::",
     port: 8080,
+    host: true,
+    allowedHosts: true, // Prevents host header injection blocks in cloud proxies
+    hmr: {
+      clientPort: 443, // Forces the hot-reload connection over secure HTTPS proxy
+    },
     watch: {
       // Prevents Vite from indexing database data and generated RAG artifacts, stopping OOM errors/deadlocks
       ignored: [
         "**/Server/Database/**", 
         "**/Server/Data/RAG/**", 
-        "**/Server/Data/Hadith/**" // 🌟 ADDED: Stops Vite from choking on your large dataset
+        "**/Server/Data/Hadith/**" // Stops Vite from choking on your large dataset
       ],
     },
   },

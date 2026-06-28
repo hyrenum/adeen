@@ -17,7 +17,7 @@ const AlphabetDetail = () => {
       <Layout>
         <Container className="w-full !rounded-[48px] max-w-md mx-auto p-8 text-center space-y-4">
           <p className="text-muted-foreground">Letter not found</p>
-          <Link to="/Aid/Alphabet">
+          <Link to="/Aid/Arabic/Alphabet">
             <Button variant="outline" className="font-bold">Back to Alphabet</Button>
           </Link>
         </Container>

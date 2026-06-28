@@ -11,7 +11,7 @@ export default function TajweedIndex() {
     <Layout>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {categories.map((cat) => (
-          <Link key={cat.id} to={`/Aid/Tajweed/${cat.id}`}>
+          <Link key={cat.id} to={`/Aid/Arabic/Tajweed/${cat.id}`}>
             <Container className="!p-5 transition-all flex items-center justify-between group">
               <h2 className="font-semibold text-base group-hover:text-primary transition-colors">
                 {cat.name}

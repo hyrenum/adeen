@@ -12,7 +12,7 @@ const AlphabetIndex = () => {
         {letters.map((letter, index) => (
           <Link
             key={letter.id}
-            to={`/Aid/Alphabet/${index + 1}`}
+            to={`/Aid/Arabic/Alphabet/${index + 1}`}
             className="w-full aspect-square max-w-[80px]"
           >
             <Button

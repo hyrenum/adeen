@@ -30,20 +30,21 @@ import Detail       from "Client/Page/Hadith/Detail";
 import Aid              from "Client/Page/Aid/Index";
 import Dua              from "Client/Page/Aid/Dua/Index";
 import Dua_Category     from "Client/Page/Aid/Dua/Category";
-import AlphabetIndex    from "Client/Page/Aid/Alphabet/Index";
-import AlphabetDetail   from "Client/Page/Aid/Alphabet/Detail";
-import Tajweed          from "Client/Page/Aid/Tajweed/Main";
-import TajweedCategory  from "Client/Page/Aid/Tajweed/Category";
-import TajweedRule      from "Client/Page/Aid/Tajweed/Rule";
+import AlphabetIndex from "Client/Page/Aid/Arabic/Alphabet/Index"
+import AlphabetDetail   from "Client/Page/Aid/Arabic/Alphabet/Detail";
+import TajweedIndex          from "Client/Page/Aid/Arabic/Tajweed/Index";
+import TajweedCategory  from "Client/Page/Aid/Arabic/Tajweed/Category";
+import TajweedSubcategory     from "Client/Page/Aid/Arabic/Tajweed/Subcategory";
+import TajweedDetail    from "Client/Page/Aid/Arabic/Tajweed/Detail"
 import PrayerTimes      from "Client/Page/Aid/Prayer-Times";
 import QiblaPage        from "Client/Page/Aid/Qibla";
 import HijriCalendar    from "Client/Page/Aid/Hijri-Calendar";
 import ZakatCalculator  from "Client/Page/Aid/Zakat-Calculator";
-import TajweedLevel     from "Client/Page/Aid/Tajweed/Level";
 import TasbihCounter    from "Client/Page/Aid/Tasbih-Counter";
 import ArabicIndex      from "Client/Page/Aid/Arabic/Index";
 import ArabicCategory   from "Client/Page/Aid/Arabic/Category";
 import ArabicSubcategory from "Client/Page/Aid/Arabic/Subcategory";
+import ArabicSubSubcategory from "Client/Page/Aid/Arabic/Sub-subcategory";
 import ArabicWordPage   from "Client/Page/Aid/Arabic/Word";
 import AIAssistant       from "Client/Page/Aid/AI";
 import Names              from "Client/Page/Aid/Names";
@@ -55,10 +56,11 @@ import PillarsIndex       from "Client/Page/Aid/Pillars/Index";
 import PillarDetail       from "Client/Page/Aid/Pillars/Detail";
 import ArticlesIndex      from "Client/Page/Aid/Articles/Index";
 import ArticleDetail      from "Client/Page/Aid/Articles/Detail";
-import Schools            from "Client/Page/Aid/Schools";
+import Schools            from "Client/Page/Aid/Schools-AND-Branches/Index";
+import Branch            from "Client/Page/Aid/Schools-AND-Branches/Branch";
+import Branch_Detail            from "Client/Page/Aid/Schools-AND-Branches/Detail";
 import QA                 from "Client/Page/Aid/QA";
 import QADetail           from "Client/Page/Aid/QADetail";
-
 
 // General
 import Feedback       from "Client/Page/Feedback";
@@ -113,14 +115,14 @@ const App = () => (
                   <Route path="/Aid" element={<Aid />} />
                   <Route path="/Aid/Dua" element={<Dua />} />
                   <Route path="/Aid/Dua/:categoryId" element={<Dua_Category />} />
-                  <Route path="/Aid/Alphabet" element={<AlphabetIndex />} />
-                  <Route path="/Aid/Alphabet/:letterId" element={<AlphabetDetail />} />
+                  <Route path="/Aid/Arabic/Alphabet" element={<AlphabetIndex />} />
+                  <Route path="/Aid/Arabic/Alphabet/:letterId" element={<AlphabetDetail />} />
                   
                   {/* Tajweed dynamic routes */}
-                  <Route path="/Aid/Tajweed" element={<Tajweed />} />
-                  <Route path="/Aid/Tajweed/:categoryId" element={<TajweedCategory />} />
-                  <Route path="/Aid/Tajweed/:categoryId/:level1" element={<TajweedLevel />} />
-                  <Route path="/Aid/Tajweed/:categoryId/:level1/:level2" element={<TajweedLevel />} />
+                  <Route path="/Aid/Arabic/Tajweed"                                            element={<TajweedIndex />} />
+                  <Route path="/Aid/Arabic/Tajweed/:categoryId"                                element={<TajweedCategory />} />
+                  <Route path="/Aid/Arabic/Tajweed/:categoryId/:subcategoryId"                 element={<TajweedSubcategory />} />
+                  <Route path="/Aid/Arabic/Tajweed/:categoryId/:subcategoryId/:subSubId"       element={<TajweedDetail />} />
                   
                   <Route path="/Aid/Tasbih" element={<TasbihCounter />} />
                   <Route path="/Aid/Prayers" element={<PrayerTimes />} />
@@ -129,10 +131,11 @@ const App = () => (
                   <Route path="/Aid/Zakat-Calculator" element={<ZakatCalculator />} />
 
                   {/* Arabic vocabulary */}
-                  <Route path="/Aid/Arabic" element={<ArabicIndex />} />
-                  <Route path="/Aid/Arabic/:categoryId" element={<ArabicCategory />} />
-                  <Route path="/Aid/Arabic/:categoryId/:subId" element={<ArabicSubcategory />} />
-                  <Route path="/Aid/Arabic/:categoryId/:subId/:wordId" element={<ArabicWordPage />} />
+                  <Route path="/Aid/Arabic"                                              element={<ArabicIndex />} />
+                  <Route path="/Aid/Arabic/:vocabId"                                     element={<ArabicCategory />} />
+                  <Route path="/Aid/Arabic/:vocabId/:categoryId"                         element={<ArabicSubcategory />} />
+                  <Route path="/Aid/Arabic/:vocabId/:categoryId/:subId"                  element={<ArabicSubSubcategory />} />
+                  <Route path="/Aid/Arabic/:vocabId/:categoryId/:subId/:wordId"          element={<ArabicWordPage />} />
                   <Route path="/Aid/AI" element={<AIAssistant />} />
                   <Route path="/Aid/Names" element={<Names />} />
                   <Route path="/Aid/Namaz" element={<Namaz />} />
@@ -144,6 +147,8 @@ const App = () => (
                   <Route path="/Aid/Articles" element={<ArticlesIndex />} />
                   <Route path="/Aid/Articles/:id" element={<ArticleDetail />} />
                   <Route path="/Aid/Schools" element={<Schools />} />
+                  <Route path="/Aid/Schools/:branch" element={<Branch />} />
+                  <Route path="/Aid/Schools/:branch/:detail" element={<Branch_Detail />} />
                   <Route path="/Aid/Q-and-A" element={<QA />} />
                   <Route path="/Aid/Q-and-A/:id" element={<QADetail />} />
 

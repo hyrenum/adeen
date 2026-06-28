@@ -3,19 +3,20 @@ import { useParams, Link } from "react-router-dom";
 import { Layout } from "Client/Component/Layout/Index";
 import { Container } from "Client/Component/UI/Container";
 import { Button } from "Client/Component/UI/Button";
-import { getArabicWord } from "Server/API/Arabic";
+import { getArabicWord } from "Server/API/Aid";
 import { useArabicBookmarks } from "Client/Hook/Use-Arabic-Bookmarks";
 import { useTranslation } from "Client/Hook/Use-Translation";
 import { Bookmark, BookmarkCheck, Volume2 } from "lucide-react";
 
 export default function ArabicWordPage() {
-  const { categoryId, subId, wordId } = useParams<{
+  const { vocabId, categoryId, subId, wordId } = useParams<{
+    vocabId: string;
     categoryId: string;
     subId: string;
     wordId: string;
   }>();
-  const word = getArabicWord(categoryId || "", subId || "", wordId || "");
-  const bookmarkKey = `${categoryId}/${subId}/${wordId}`;
+  const word = getArabicWord(categoryId || "", subId || "", wordId || "", vocabId || "");
+  const bookmarkKey = `${vocabId}/${categoryId}/${subId}/${wordId}`;
   const { isBookmarked, toggle } = useArabicBookmarks();
   const { isRtl } = useTranslation();
   const [revealed, setRevealed] = useState(false);
@@ -25,7 +26,7 @@ export default function ArabicWordPage() {
       <Layout>
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">Word not found</p>
-          <Link to={`/Aid/Arabic/${categoryId}/${subId}`}>
+          <Link to={`/Aid/Arabic/${vocabId}/${categoryId}/${subId}`}>
             <Button variant="outline">Back</Button>
           </Link>
         </div>
@@ -42,7 +43,6 @@ export default function ArabicWordPage() {
     window.speechSynthesis.speak(utter);
   };
 
-  // Labels — flip to Arabic when UI language is RTL/Arabic
   const L = isRtl
     ? { translation: "الترجمة", transliteration: "النقحرة", definition: "التعريف", root: "الجذر" }
     : { translation: "Translation", transliteration: "Transliteration", definition: "Definition", root: "Root" };
@@ -50,7 +50,6 @@ export default function ArabicWordPage() {
   return (
     <Layout>
       <Container className="w-full !rounded-[48px] p-8 space-y-6">
-        {/* Header: actions (using Button UI component) */}
         <div className="flex items-center justify-end gap-2">
           <Button
             size="icon"
@@ -77,7 +76,6 @@ export default function ArabicWordPage() {
           </Button>
         </div>
 
-        {/* The word — click to reveal. Centered before reveal; moves to start after. */}
         <button
           onClick={() => setRevealed((r) => !r)}
           className={`w-full block cursor-pointer select-none transition-all ${
@@ -96,32 +94,24 @@ export default function ArabicWordPage() {
         {revealed && (
           <div className="space-y-4 border-t border-border pt-5">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                {L.translation}
-              </p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{L.translation}</p>
               <p className="text-2xl font-semibold">{word.english}</p>
             </div>
             {word.transliteration && (
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {L.transliteration}
-                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{L.transliteration}</p>
                 <p className="text-base italic">{word.transliteration}</p>
               </div>
             )}
             {word.definition && (
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {L.definition}
-                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{L.definition}</p>
                 <p className="text-base leading-relaxed">{word.definition}</p>
               </div>
             )}
             {word.root && (
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {L.root}
-                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{L.root}</p>
                 <p className="text-base font-mono tracking-wider">{word.root}</p>
               </div>
             )}

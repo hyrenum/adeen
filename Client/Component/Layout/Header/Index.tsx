@@ -8,21 +8,20 @@ import { useAuth } from "Client/Context/Auth";
 import { useTranslation } from "Client/Hook/Use-Translation";
 import { useIsMobile } from "Client/Hook/Use-Mobile";
 import { cn } from "Client/Library/utils";
-import { Link } from "react-router-dom";
 import { Button } from "Client/Component/UI/Button";
 import { Input } from "Client/Component/UI/Input";
 import { Container } from "Client/Component/UI/Container";
-import { SearchInput } from "../Search/Input";
+import { SearchInput } from "../../Search/Input";
 import { useSearch } from "Client/Hook/Use-Search";
-import { Quran_Navigator } from "Client/Component/Quran/Navigator";
-import { Aid_Navigator, isAidPath } from "Client/Component/Aid/Navigator";
+import { Quran_Navigator } from "Client/Component/Layout/Header/Navigator/Quran";
+import { Aid_Navigator, isAidPath } from "Client/Component/Layout/Header/Navigator/Aid";
+import { Hadith_Navigator, isHadithPath } from "Client/Component/Layout/Header/Navigator/Hadith";
 import { navHistory, useNavHistoryTracker } from "Client/Hook/Use-Nav-History";
 import { mobileSettingsStore } from "Client/Component/Settings/mobileSettingsStore";
 import { tryHandleBack } from "Client/Hook/Use-Back-Handler";
 import { usePWAInstall } from "Client/Hook/Use-PWA-Install";
 import { toast } from "Client/Hook/Use-Toast";
 
-// Helper to extract and format page title from current path
 function getPageTitle(pathname: string): string {
   const segments = pathname.replace(/\/$/, "").split("/").filter(Boolean);
   if (segments.length === 0) return "";
@@ -33,7 +32,6 @@ function getPageTitle(pathname: string): string {
     .join(" ");
 }
 
-// Check whether current path is inside a Quran surah view
 function useIsQuranPath() {
   const location = useLocation();
   return /^\/Quran\/Surah\/\d+(\/Ayah\/\d+)?/.test(location.pathname);
@@ -47,18 +45,18 @@ export const Header = memo(function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { isInstalled, promptInstall } = usePWAInstall();
+  const { promptInstall } = usePWAInstall();
 
-  // Track visited paths for de-duplicated back navigation
   useNavHistoryTracker();
 
   const [isSearchMode, setIsSearchMode] = useState(false);
   const { query, setQuery, category, setCategory, results, selectedIndex, setSelectedIndex } = useSearch();
 
-  // Mobile settings: title + back wiring (driven by mobileSettingsStore)
   const [mSettings, setMSettings] = useState(() => mobileSettingsStore.getState());
   const [settingsSearchActive, setSettingsSearchActive] = useState(false);
   const [settingsSearchValue, setSettingsSearchValue] = useState("");
+
+  const [isAidOpen, setIsAidOpen] = useState(false);
 
   useEffect(() => {
     const unsub = mobileSettingsStore.subscribe(() => {
@@ -78,12 +76,17 @@ export const Header = memo(function Header() {
   const isMobileSettingsOpen = isMobile && isSettingsSidebarOpen;
   const isQuranPath = useIsQuranPath();
   const aidPath = isAidPath(location.pathname);
+  const hadithPath = isHadithPath(location.pathname);
+
+  useEffect(() => {
+    setIsAidOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        if (isMobileSettingsOpen) return; // ignore in mobile settings
+        if (isMobileSettingsOpen) return;
         setIsSearchMode((prev) => !prev);
       }
     };
@@ -104,7 +107,6 @@ export const Header = memo(function Header() {
     if (!settingsSearchActive) setSettingsSearchValue("");
   }, [settingsSearchActive]);
 
-  // Auto-exit settings search when the sidebar closes
   useEffect(() => {
     if (!isSettingsSidebarOpen && settingsSearchActive) {
       mobileSettingsStore.exitSearchMode();
@@ -129,32 +131,22 @@ export const Header = memo(function Header() {
     setCategory("pages");
   };
 
-  // ----- Back -----
   const handleBack = useCallback(() => {
     if (isSearchMode) { closeSearchMode(); return; }
-
-    // Close any open registered dialog (Notes, Tafsir, Surah Info, etc.)
     if (tryHandleBack()) return;
-
-    // Mobile settings: delegate to settings store (which knows nested modal stack, etc.)
     if (isMobileSettingsOpen) {
       mobileSettingsStore.goBack();
       return;
     }
-
     if (isSettingsSidebarOpen) { setSettingsSidebarOpen(false); return; }
     if (isHome) return;
 
-    // Always use our in-memory distinct history. When exhausted, it climbs
-    // one URL segment automatically. We avoid `navigate(-1)` because the
-    // browser back-stack often causes A↔B ping-pong on direct loads.
     const target = navHistory.popDistinct(location.pathname);
     if (target) {
       navigate(target);
       return;
     }
 
-    // Final fallback: climb segments
     const segments = location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
     if (segments.length <= 1) { navigate("/"); return; }
     segments.pop();
@@ -192,10 +184,8 @@ export const Header = memo(function Header() {
     }
   };
 
-  // ----- Search-button click -----
   const handleSearchClick = () => {
     if (isMobileSettingsOpen) {
-      // Settings search mode
       mobileSettingsStore.enterSearchMode(() => {
         setSettingsSearchValue("");
       });
@@ -209,23 +199,11 @@ export const Header = memo(function Header() {
     mobileSettingsStore.setSearchQuery(v);
   };
 
-  const handleInstall = async () => {
-    const installed = await promptInstall();
-    if (!installed) {
-      toast({
-        title: "Install Al-Din",
-        description: "Use your browser menu: Install app / Add to Home Screen.",
-      });
-    }
-  };
-
   const exitSettingsSearch = () => {
     mobileSettingsStore.exitSearchMode();
   };
 
-  // Left section: title/back rendering
   const renderLeftContent = () => {
-    // Mobile settings open: show settings-scoped back + title (or search input)
     if (isMobileSettingsOpen) {
       if (settingsSearchActive) {
         return (
@@ -274,14 +252,18 @@ export const Header = memo(function Header() {
 
     return (
       <>
-        <Button onClick={handleBack} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
-          <ArrowLeft className={cn("h-4 w-4", isRtl && "rotate-180")} />
-        </Button>
+        {!(aidPath && isMobile && isAidOpen) && (
+          <Button onClick={handleBack} className="w-8 h-8 sm:w-9 sm:h-9 p-0 shrink-0" variant="ghost">
+            <ArrowLeft className={cn("h-4 w-4", isRtl && "rotate-180")} />
+          </Button>
+        )}
         {!isSearchMode && (
           isQuranPath ? (
             <Quran_Navigator />
           ) : aidPath ? (
-            <Aid_Navigator />
+            <Aid_Navigator onOpenChange={setIsAidOpen} />
+          ) : hadithPath ? (
+            <Hadith_Navigator />
           ) : (
             <Button
               variant="ghost"
@@ -295,40 +277,47 @@ export const Header = memo(function Header() {
     );
   };
 
-  // Right-side visibility: hide Settings/Sign-in when settings open (any device)
-  // and hide global Search when mobile settings open (search becomes settings-search via handleSearchClick).
   const hideRightSettingsButtons = isSettingsSidebarOpen;
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-2 right-2 sm:left-4 sm:right-4 z-50 transition-all duration-300 flex justify-between items-start pt-1 sm:pt-2 isolate",
-        shouldHide && !isSettingsSidebarOpen && !isMobileSettingsOpen
+        "fixed top-0 z-50 transition-all duration-300 flex justify-between items-start pt-1 sm:pt-2 isolate",
+        aidPath && isAidOpen ? "max-sm:left-0 max-sm:right-0 max-sm:pt-0 left-2 right-2 sm:left-4 sm:right-4" : "left-2 right-2 sm:left-4 sm:right-4",
+        shouldHide && !isSettingsSidebarOpen && !isMobileSettingsOpen && !(aidPath && isAidOpen)
           ? "-translate-y-24 opacity-0 pointer-events-none"
           : "translate-y-0 opacity-100"
       )}
       dir={isRtl ? "rtl" : "ltr"}
     >
-      <div className="flex items-center gap-2 h-8 sm:h-9 flex-1 min-w-0">
+      {/* Layout Wrapper Column: Uses flex layout rules so that when left content expands, 
+        it safely scales, and natively forces the inline layout neighbor (Donate) 
+        to step rightwards instead of stacking/overlapping.
+      */}
+      <div className={cn("flex items-center min-w-0 flex-1", aidPath && isAidOpen ? "max-sm:gap-0 max-sm:h-auto" : "gap-2 h-8 sm:h-9")}>
         {renderLeftContent()}
+        
+        {/* 🌟 DYNAMIC AUTO-ADJUST DONATE LAYOUT WRAPPER 
+          When left title is short, `sm:absolute sm:left-1/2 sm:-translate-x-1/2` pins it exactly centered. 
+          If the title element runs long, `ml-auto sm:ml-4` catches it, acts as a protective margin buffer, 
+          and moves the Donate element safely to the right.
+        */}
+        {!isSearchMode && !isMobileSettingsOpen && !(aidPath && isAidOpen) && (
+          <div className="h-8 sm:h-9 flex items-center shrink-0 ml-auto pl-2 sm:pl-0 sm:absolute sm:left-1/2 sm:-translate-x-1/2 sm:ml-4 transition-all duration-200">
+            <Button
+              onClick={() => navigate("/Donate")}
+              className="w-8 h-8 sm:w-9 sm:h-9 p-0"
+              variant="ghost"
+              aria-label="Donate"
+              title="Donate"
+            >
+              <Heart className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Centered Donate button */}
-      {!isSearchMode && !isMobileSettingsOpen && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-1 sm:top-2 h-8 sm:h-9 flex items-center">
-          <Button
-            onClick={() => navigate("/Donate")}
-            className="w-8 h-8 sm:w-9 sm:h-9 p-0"
-            variant="ghost"
-            aria-label="Donate"
-            title="Donate"
-          >
-            <Heart className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      <div className="flex items-start gap-1 sm:gap-2">
+      <div className="flex items-start gap-1 sm:gap-2 shrink-0 ml-2">
         {isSearchMode && !isMobileSettingsOpen ? (
           <div
             ref={searchContainerRef}
@@ -354,33 +343,33 @@ export const Header = memo(function Header() {
             />
           </div>
         ) : (
-          <div className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9">
-            {/* Hide Search button only while we already render a settings-search input */}
-            {!(isMobileSettingsOpen && settingsSearchActive) && (
-              <Button onClick={handleSearchClick} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
-            {/* Install/Download button removed from header */}
-            {!hideRightSettingsButtons && (
-              <>
-                <Button onClick={() => setSettingsSidebarOpen(true)} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
-                  <Settings className="h-4 w-4" />
+          !(aidPath && isAidOpen) && (
+            <div className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9">
+              {!(isMobileSettingsOpen && settingsSearchActive) && (
+                <Button onClick={handleSearchClick} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
+                  <Search className="h-4 w-4" />
                 </Button>
-                {!user && (
-                  <Button
-                    onClick={() => navigate("/Sign-In")}
-                    className="w-8 h-8 sm:w-9 sm:h-9 p-0"
-                    variant="ghost"
-                    aria-label="Sign In"
-                    title="Sign In"
-                  >
-                    <LogIn className="h-4 w-4" />
+              )}
+              {!hideRightSettingsButtons && (
+                <>
+                  <Button onClick={() => setSettingsSidebarOpen(true)} className="w-8 h-8 sm:w-9 sm:h-9 p-0" variant="ghost">
+                    <Settings className="h-4 w-4" />
                   </Button>
-                )}
-              </>
-            )}
-          </div>
+                  {!user && (
+                    <Button
+                      onClick={() => navigate("/Sign-In")}
+                      className="w-8 h-8 sm:w-9 sm:h-9 p-0"
+                      variant="ghost"
+                      aria-label="Sign In"
+                      title="Sign In"
+                    >
+                      <LogIn className="h-4 w-4" />
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )
         )}
       </div>
     </header>

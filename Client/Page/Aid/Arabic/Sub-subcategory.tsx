@@ -2,18 +2,22 @@ import { useParams, Link } from "react-router-dom";
 import { Layout } from "Client/Component/Layout/Index";
 import { Card } from "Client/Component/UI/Card";
 import { Button } from "Client/Component/UI/Button";
-import { getArabicCategory } from "Server/API/Aid";
+import { getArabicSubcategory } from "Server/API/Aid";
 
-export default function ArabicSubcategory() {
-  const { vocabId, categoryId } = useParams<{ vocabId: string; categoryId: string }>();
-  const category = getArabicCategory(categoryId || "", vocabId || "");
+export default function ArabicSubSubcategory() {
+  const { vocabId, categoryId, subId } = useParams<{
+    vocabId: string;
+    categoryId: string;
+    subId: string;
+  }>();
+  const sub = getArabicSubcategory(categoryId || "", subId || "", vocabId || "");
 
-  if (!category) {
+  if (!sub) {
     return (
       <Layout>
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">Not found</p>
-          <Link to={`/Aid/Arabic/${vocabId}`}>
+          <Link to={`/Aid/Arabic/${vocabId}/${categoryId}`}>
             <Button variant="outline">Back</Button>
           </Link>
         </div>
@@ -24,15 +28,17 @@ export default function ArabicSubcategory() {
   return (
     <Layout>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 w-full">
-        {category.subcategories.map((s) => (
-          <Link key={s.id} to={`/Aid/Arabic/${vocabId}/${category.id}/${s.id}`}>
+        {sub.words.map((w) => (
+          <Link key={w.id} to={`/Aid/Arabic/${vocabId}/${categoryId}/${subId}/${w.id}`}>
             <Card className="p-4 text-center group">
               <div className="font-semibold text-base [.high-contrast_&]:group-hover:text-white [.high-contrast_&]:dark:group-hover:text-black">
-                {s.name}
+                {w.english}
               </div>
-              <div className="font-arabic text-lg mt-1 text-muted-foreground" dir="rtl">
-                {s.arabicName}
-              </div>
+              {w.transliteration && (
+                <div className="text-xs mt-0.5 text-muted-foreground italic">
+                  {w.transliteration}
+                </div>
+              )}
             </Card>
           </Link>
         ))}
